@@ -3,75 +3,235 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LumixCore</title>
-  <link rel="stylesheet" href="./Public/Style.css" />
-   <link rel="icon" type="image/png" href="./Public/Assest/Logo.png" />
-   <style>
-    
+  <title>DocFix | Fix PDFs & Images Easily</title>
 
+  <link rel="stylesheet" href="Style.css">
+  <link rel="stylesheet" href="index.css">
+  <link rel="stylesheet" href="loader.css">
 
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #0f0f0f;
+      color: #ffffff;
+    }
 
-   </style>
+    header {
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 1.6rem;
+    }
+
+    .brand span {
+      font-size: 0.8rem;
+      opacity: 0.7;
+    }
+
+    .lang-toggle {
+      background: #1f1f1f;
+      border: none;
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .hero h2 {
+      font-size: 2.2rem;
+      margin-bottom: 12px;
+    }
+
+    .hero p {
+      max-width: 620px;
+      margin: auto;
+      opacity: 0.85;
+    }
+
+    .tools {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+      padding: 40px 20px;
+      max-width: 1100px;
+      margin: auto;
+    }
+
+    .tool-card {
+      background: #161616;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .tool-card h3 {
+      margin-bottom: 10px;
+    }
+
+    .tool-card p {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      margin-bottom: 18px;
+    }
+
+    .tool-card a {
+      display: inline-block;
+      padding: 10px 18px;
+      background: #4f46e5;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+
+    .problems {
+      background: #121212;
+      padding: 40px 20px;
+      text-align: center;
+    }
+
+    .problems ul {
+      list-style: none;
+      padding: 0;
+      max-width: 600px;
+      margin: auto;
+      text-align: left;
+    }
+
+    footer {
+      padding: 20px;
+      text-align: center;
+      font-size: 0.8rem;
+      opacity: 0.7;
+    }
+  </style>
 </head>
+
 <body>
-  <!-- LOADING SCREEN -->
-  <div id="loading">
-    <div class="loading-title" id="loadingText"></div>
-    <div class="loader-bar"><div class="loader-bar-fill" id="loaderFill"></div></div>
-  </div>
 
-  <!-- MAIN CONTENT -->
-  <div id="content" class="content-wrapper">
-    <div class="container">
-      <div id="navbara" class=" container index">
-        <a href="./Public/AI.html" class="gradientai-text" data-sound-id="sound-lumixcore">
-  <span class="gradient-fill">Lumix Core AI</span>
-  <span class="trail-star">★</span>
-</a>
-        <a href="./Public/Genartor.html" class="gradient-text" data-sound-id="sound-generator">Random Image Generator</a>
-        <a href="./Public/Converter.html" class="gradient-text" data-sound-id="sound-convert">Image Converter</a>
-        <a href="./Public/pdfCompressor.html" class="gradient-text" data-sound-id="sound-pdf">PDF Compressor</a> 
-        <a href="./Public/ABOUT.HTML" class="gradient-text" data-sound-id="sound-about"> About the AI </a>
-      </div>
-      <div class="a">
-        <h1><span class="gradient-textab">This is My Streamlab Project</span></h1>
-        <p><span class="gradient-textab">Welcome everyone! Today, I’m excited to share my project, which features three main segments:an AI, a Random Image Generator and an Image Converter. Get ready to discover how these tools can enhance your digital experience with fun and creativity! </span></p>
-        <p><span class="gradient-textab">The magic happens with JavaScript and a generous dose of creative CSS, bringing visuals to life and making the interface both interactive and visually appealing.</span></p>
-      </div>
+  <header>
+    <div class="brand">
+      <h1 id="brandTitle">DocFix</h1>
+      <span id="brandSub">by OpenTools</span>
     </div>
-  </div>
-<script>
- document.addEventListener('DOMContentLoaded', () => {
-  const links = document.querySelectorAll('.gradient-text, .gradientai-text');
+    <button class="lang-toggle" onclick="toggleLang()">हिन्दी</button>
+  </header>
 
-  links.forEach(link => {
-    link.addEventListener('click', e => {
-      const soundId = link.getAttribute('data-sound-id');
-      const sound = document.getElementById(soundId);
-      if (!sound) return;
+  <section class="hero">
+    <h2 id="heroTitle">Fix PDF & Image Problems Instantly</h2>
+    <p id="heroDesc">
+      DocFix helps you reduce file size, convert formats, and prepare documents
+      for forms and applications.
+    </p>
+  </section>
 
-      e.preventDefault();
-      sound.currentTime = 0;
-      sound.play();
+  <section class="tools">
+    <div class="tool-card">
+      <h3 id="pdfTitle">📄 PDF Compressor</h3>
+      <p id="pdfDesc">Reduce PDF size to meet upload limits.</p>
+      <a href="./Public/pdfCompressor.html" id="pdfBtn">Open PDF Tool</a>
+    </div>
 
-      sound.addEventListener('ended', function handleEnd() {
-        const targetHref = link.getAttribute('href');
-        window.location.href = targetHref;
-        sound.removeEventListener('ended', handleEnd);
-      });
-    });
-  });
-});
+    <div class="tool-card">
+      <h3 id="imgTitle">🖼️ Image Converter</h3>
+      <p id="imgDesc">Convert, resize, and compress images.</p>
+      <a href="./Public/Converter.html" id="imgBtn">Open Image Tool</a>
+    </div>
 
-</script>
+    <div class="tool-card">
+      <h3 id="genTitle">🎨 Image Generator</h3>
+      <p id="genDesc">Create and edit images easily.</p>
+      <a href="./Public/Genartor.html" id="genBtn">Open Generator</a>
+    </div>
+  </section>
 
-  <script src="./Public/script.js"></script>
-   <audio id="sound-home" src="./Public/Assest/Home.mp3" preload="auto"></audio>
-<audio id="sound-lumixcore" src="./Public/Assest/lumix core ai.mp3" preload="auto"></audio>
-<audio id="sound-convert" src="./Public/Assest/Image Converter.mp3" preload="auto"></audio>
-<audio id="sound-about" src="./Public/Assest/About the AI.mp3" preload="auto"></audio>
-<audio id="sound-generator" src="./Public/Assest/Random Image Generator.mp3" preload="auto"></audio>
+  <section class="problems">
+    <h3 id="probTitle">Common Problems We Fix</h3>
+    <ul id="probList">
+      <li>❌ File size too large</li>
+      <li>❌ Invalid format</li>
+      <li>❌ Upload rejected</li>
+      <li>✅ Fixed automatically</li>
+    </ul>
+  </section>
+
+  <footer id="footerText">
+    © 2026 DocFix · Built under OpenTools <br>
+    Simple • Secure • No Login Required
+  </footer>
+
+  <script>
+    let isHindi = false;
+
+    function toggleLang() {
+      isHindi = !isHindi;
+
+      document.querySelector(".lang-toggle").innerText = isHindi ? "English" : "हिन्दी";
+
+      document.getElementById("heroTitle").innerText =
+        isHindi ? "PDF और Image की समस्याएँ तुरंत ठीक करें" : "Fix PDF & Image Problems Instantly";
+
+      document.getElementById("heroDesc").innerText =
+        isHindi
+          ? "DocFix फाइल साइज कम करने, फॉर्मेट बदलने और दस्तावेज़ अपलोड के लिए तैयार करने में मदद करता है।"
+          : "DocFix helps you reduce file size, convert formats, and prepare documents for forms and applications.";
+
+      document.getElementById("pdfTitle").innerText =
+        isHindi ? "📄 PDF कंप्रेसर" : "📄 PDF Compressor";
+      document.getElementById("pdfDesc").innerText =
+        isHindi ? "PDF का साइज अपलोड लिमिट के अनुसार कम करें।" : "Reduce PDF size to meet upload limits.";
+      document.getElementById("pdfBtn").innerText =
+        isHindi ? "PDF टूल खोलें" : "Open PDF Tool";
+
+      document.getElementById("imgTitle").innerText =
+        isHindi ? "🖼️ इमेज कन्वर्टर" : "🖼️ Image Converter";
+      document.getElementById("imgDesc").innerText =
+        isHindi ? "इमेज को बदलें, छोटा करें और कंप्रेस करें।" : "Convert, resize, and compress images.";
+      document.getElementById("imgBtn").innerText =
+        isHindi ? "इमेज टूल खोलें" : "Open Image Tool";
+
+      document.getElementById("genTitle").innerText =
+        isHindi ? "🎨 इमेज जनरेटर" : "🎨 Image Generator";
+      document.getElementById("genDesc").innerText =
+        isHindi ? "आसानी से इमेज बनाएं और एडिट करें।" : "Create and edit images easily.";
+      document.getElementById("genBtn").innerText =
+        isHindi ? "जनरेटर खोलें" : "Open Generator";
+
+      document.getElementById("probTitle").innerText =
+        isHindi ? "हम किन समस्याओं को ठीक करते हैं" : "Common Problems We Fix";
+
+      document.getElementById("probList").innerHTML = isHindi
+        ? `
+          <li>❌ फाइल का साइज ज्यादा</li>
+          <li>❌ गलत फॉर्मेट</li>
+          <li>❌ अपलोड रिजेक्ट</li>
+          <li>✅ अपने आप ठीक</li>
+        `
+        : `
+          <li>❌ File size too large</li>
+          <li>❌ Invalid format</li>
+          <li>❌ Upload rejected</li>
+          <li>✅ Fixed automatically</li>
+        `;
+
+      document.getElementById("footerText").innerHTML =
+        isHindi
+          ? "© 2026 DocFix · OpenTools के अंतर्गत <br> सरल • सुरक्षित • बिना लॉगिन"
+          : "© 2026 DocFix · Built under OpenTools <br> Simple • Secure • No Login Required";
+    }
+  </script>
 
 </body>
 </html>
-

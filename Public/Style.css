@@ -1,4 +1,4 @@
-/* ===== BODY ===== */
+/* ===== BODY =====
 body {
   margin: 0;
   height: 100vh;
@@ -11,7 +11,7 @@ body {
 }
 
 /* ===== LOADING SCREEN ===== */
-#loading {
+/* #loading {
   position: fixed;
   top: 0;
   left: 0;
@@ -65,7 +65,7 @@ body {
 }
 
 /* ===== MAIN CONTENT ===== */
-#content {
+/*#content {
   display: none;
   opacity: 0;
   transform: translateY(20px);
@@ -83,7 +83,7 @@ body {
 }
 
 /* ===== CONTAINER ===== */
-.container {
+/*.container {
   background-color: rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -104,7 +104,7 @@ body {
 }
 
 /* ===== NAVBAR ===== */
-#navbara {
+/*#navbara {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
@@ -134,7 +134,7 @@ body {
 }
 
 /* ===== HEADINGS & PARAGRAPHS ===== */
-.gradient-textab {
+/*.gradient-textab {
   font-size: 1.5rem;
   font-weight: 500;
   line-height: 1.6;
@@ -148,9 +148,9 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   color: transparent;
-}
+} */
 
-.gradientai-text {
+/*.gradientai-text {
   position: relative;
   display: inline-block;
   padding: 8px 12px;
@@ -161,7 +161,7 @@ body {
 }
 
 /* ✅ Visible gradient fill */
-.gradient-fill {
+/*.gradient-fill {
   background: linear-gradient(270deg, #833AB4, #FD1D1D, #FD552C, #d8840f);
   background-size: 800% 800%;
   -webkit-background-clip: text;
@@ -171,7 +171,7 @@ body {
 }
 
 /* 🌈 Light mode override */
-body.light-mode .gradient-fill {
+/*body.light-mode .gradient-fill {
   background: linear-gradient(270deg, #ae8e44, #FFC29B, #F39F9F, #B95E82);
    
   background-size: 600% 600%;
@@ -181,7 +181,7 @@ body.light-mode .gradient-fill {
 }
 
 /* ✨ Star comet effect */
-.trail-star {
+/*.trail-star {
   position: absolute;
   top: 50%;
   left: -20px;
@@ -194,17 +194,17 @@ body.light-mode .gradient-fill {
 }
 
 /* 🌈 Light mode star fix */
-body.light-mode .trail-star {
+/*body.light-mode .trail-star {
   color: #333333;
   text-shadow: 0 0 6px rgba(0,0,0,0.2);
 }
 .gradient-text,
 .gradientai-text {
   position: relative; /* 👈 This anchors the star */
-}
+/*}
 
 /* ✨ Animations */
-@keyframes gradientShift {
+/*@keyframes gradientShift {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
@@ -239,7 +239,7 @@ body.light-mode .trail-star {
 }
 
 /* ===== KEYFRAMES ===== */
-@keyframes gradientMove {
+/*@keyframes gradientMove {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
@@ -275,4 +275,49 @@ body.light-mode .trail-star {
   background-color: #1a1a1a;
   border: 1px solid #444;
   object-fit: cover;
+}*/
+.docfix-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: #0f0f0f;
+  border-bottom: 1px solid #222;
+}
+
+.docfix-header .logo {
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-decoration: none;
+  color: #fff;
+}
+
+.docfix-header nav a {
+  margin-left: 16px;
+  text-decoration: none;
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.docfix-header nav a:hover {
+  color: #fff;
+}
+.tool-card a {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: linear-gradient(270deg, #6EE7B7, #3B82F6, #9333EA);
+  background-size: 400% 400%;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: background-position 0.5s ease;
+}
+body {
+  padding-top: 70px;
+  background: linear-gradient(270deg, #ff6ec4, #7873f5, #4ade80, #facc15);
+  background-size: 800% 800%;
+  animation: gradientMove 15s ease infinite;
+  font-family: Arial, sans-serif;
 }

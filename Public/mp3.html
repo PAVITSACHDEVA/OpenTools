@@ -3,25 +3,59 @@
 <head>
   <meta charset="UTF-8" />
   <title>Batch MP3 Converter</title>
+  <link rel="stylesheet" href="site.css">
   <style>
-    body { font-family: sans-serif; padding: 20px; }
     #dropzone {
-      width: 100%; max-width: 400px; height: 150px;
-      border: 2px dashed #aaa; border-radius: 10px;
-      text-align: center; line-height: 150px;
-      margin-bottom: 10px; color: #555;
+      width: 100%;
+      height: 160px;
+      border: 2px dashed var(--docfix-border);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--docfix-muted);
+      margin-bottom: 16px;
     }
-    #statusList { margin-top: 10px; list-style: none; padding: 0; }
-    #statusList li { margin-bottom: 5px; }
+
+    #statusList {
+      margin-top: 16px;
+      list-style: none;
+      padding: 0;
+      color: var(--docfix-muted);
+      display: grid;
+      gap: 6px;
+    }
+
+    #downloadLink {
+      display: inline-flex;
+      margin-top: 12px;
+    }
   </style>
 </head>
 <body>
-  <h2>Batch Convert Files to MP3</h2>
-  <div id="dropzone">Drop files here</div>
-  <input type="file" id="uploader" multiple accept="audio/*,video/*" />
-  <button onclick="convertAll()">Convert All</button>
-  <ul id="statusList"></ul>
-  <a id="downloadLink" style="display:none">Download ZIP</a>
+  <header class="docfix-header">
+    <a href="../index.html" class="logo">DocFix</a>
+    <nav>
+      <a href="pdfCompressor.html">PDF</a>
+      <a href="Converter.html">Images</a>
+      <a href="Genartor.html">Generator</a>
+    </nav>
+  </header>
+
+  <main class="docfix-main">
+    <section class="page-card">
+      <h2>Batch Convert Files to MP3</h2>
+      <p class="muted-text">Drop multiple audio/video files and convert them into a single downloadable ZIP.</p>
+      <div id="dropzone">Drop files here</div>
+      <input type="file" id="uploader" multiple accept="audio/*,video/*" />
+      <div class="page-actions">
+        <button class="btn-primary" onclick="convertAll()">Convert All</button>
+      </div>
+      <ul id="statusList"></ul>
+      <a id="downloadLink" class="btn-secondary" style="display:none">Download ZIP</a>
+    </section>
+  </main>
 
   <script type="module">
     import { createFFmpeg, fetchFile } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js';

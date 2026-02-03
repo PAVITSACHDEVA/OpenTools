@@ -15,9 +15,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const qualitySlider = document.getElementById("quality");
   const langBtn = document.getElementById("langToggle");
 
+  let isHindi = false;
   let originalImage = null;
-  const originalCanvas = document.createElement("canvas");
-  const originalCtx = originalCanvas.getContext("2d");
+
+  const baseCanvas = document.createElement("canvas");
+  const baseCtx = baseCanvas.getContext("2d");
 
   const defaults = {
     grayscale: 0,
@@ -27,6 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
     blur: 0,
     invert: 0,
   };
+
   let current = { ...defaults };
 
   function simulateProgress() {
@@ -57,22 +60,23 @@ document.addEventListener("DOMContentLoaded", () => {
     img.src = `https://picsum.photos/seed/${seed}/1200/800`;
 
     img.onload = () => {
-      originalCanvas.width = previewCanvas.width = img.width;
-      originalCanvas.height = previewCanvas.height = img.height;
-      originalCtx.drawImage(img, 0, 0);
+      baseCanvas.width = previewCanvas.width = img.width;
+      baseCanvas.height = previewCanvas.height = img.height;
+      baseCtx.drawImage(img, 0, 0);
       originalImage = img;
 
       editor.classList.remove("hidden");
       imagePlaceholder.style.display = "none";
       previewCanvas.style.display = "block";
 
-      reset();
+      resetFilters();
       generateBtn.disabled = false;
       generateBtn.innerText = isHindi ? "नई इमेज बनाएं" : "✨ Generate New Image";
     };
   };
 
-  function apply() {
+  function applyFilters() {
+    if (!originalImage) return;
     let f = "";
     for (const k in current) {
       if (current[k] !== defaults[k]) {
@@ -80,23 +84,23 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
     ctx.filter = f;
-    ctx.drawImage(originalCanvas, 0, 0);
+    ctx.drawImage(baseCanvas, 0, 0);
   }
 
   filterInputs.forEach((i) =>
     i.addEventListener("input", (e) => {
       current[e.target.id] = e.target.value;
-      apply();
+      applyFilters();
     })
   );
 
-  function reset() {
+  function resetFilters() {
     current = { ...defaults };
     filterInputs.forEach((i) => (i.value = defaults[i.id]));
-    apply();
+    applyFilters();
   }
 
-  resetFiltersBtn.onclick = reset;
+  resetFiltersBtn.onclick = resetFilters;
 
   formatSelect.onchange = () => {
     qualityGroup.style.display =
@@ -112,21 +116,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }, formatSelect.value, qualitySlider.value);
   };
 
-  let isHindi = false;
   langBtn.onclick = () => {
     isHindi = !isHindi;
     langBtn.innerText = isHindi ? "English" : "हिन्दी";
-    document.getElementById("genTitle").innerText = isHindi
-      ? "📸 इमेज जनरेटर और एडिटर"
-      : "📸 Image Generator & Editor";
-    document.getElementById("genDesc").innerText = isHindi
-      ? "बटन दबाएं → स्लाइडर बदलें → इमेज डाउनलोड करें"
-      : "Click the button → adjust sliders → download image";
-    imagePlaceholder.innerText = isHindi
-      ? "शुरू करने के लिए इमेज बनाएं"
-      : "Generate an image to begin editing.";
-    generateBtn.innerText = isHindi
-      ? "नई इमेज बनाएं"
-      : "✨ Generate New Image";
+
+    document.getElementById("genTitle").innerText =
+      isHindi ? "📸 इमेज जनरेटर और एडिटर" : "📸 Image Generator & Editor";
+
+    document.getElementById("genDesc").innerText =
+      isHindi
+        ? "बटन दबाएं → स्लाइडर बदलें → इमेज डाउनलोड करें"
+        : "Click the button → adjust sliders → download image";
+
+    imagePlaceholder.innerText =
+      isHindi ? "शुरू करने के लिए इमेज बनाएं" : "Generate an image to begin editing.";
+
+    generateBtn.innerText =
+      isHindi ? "नई इमेज बनाएं" : "✨ Generate New Image";
   };
 });

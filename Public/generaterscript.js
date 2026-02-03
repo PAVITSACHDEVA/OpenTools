@@ -135,3 +135,77 @@ document.addEventListener("DOMContentLoaded", () => {
       isHindi ? "नई इमेज बनाएं" : "✨ Generate New Image";
   };
 });
+document.addEventListener("DOMContentLoaded", () => {
+
+  const $ = (id) => document.getElementById(id);
+
+  let isHindi = false;
+
+  const texts = {
+    en: {
+      title: "📸 Image Generator",
+      desc: "Click the button → move sliders → download image",
+      helper: "Works on slow internet • No login needed",
+      generate: "✨ Generate New Image",
+      controls: "Controls",
+      effects: "Image Effects",
+      bw: "Black & White",
+      sepia: "Sepia",
+      contrast: "Contrast",
+      brightness: "Brightness",
+      blur: "Blur",
+      invert: "Invert",
+      reset: "Reset",
+      download: "Download",
+      downloadBtn: "Download Image",
+      placeholder: "Generate an image to begin editing."
+    },
+    hi: {
+      title: "📸 इमेज जनरेटर",
+      desc: "बटन दबाएं → स्लाइडर बदलें → इमेज डाउनलोड करें",
+      helper: "धीमे इंटरनेट पर भी काम करता है • लॉगिन की ज़रूरत नहीं",
+      generate: "✨ नई इमेज बनाएं",
+      controls: "नियंत्रण",
+      effects: "इमेज इफ़ेक्ट",
+      bw: "ब्लैक एंड व्हाइट",
+      sepia: "सेपिया",
+      contrast: "कॉन्ट्रास्ट",
+      brightness: "चमक",
+      blur: "ब्लर",
+      invert: "रंग उल्टा",
+      reset: "रीसेट",
+      download: "डाउनलोड",
+      downloadBtn: "इमेज डाउनलोड करें",
+      placeholder: "शुरू करने के लिए इमेज बनाएं"
+    }
+  };
+
+  function applyLang() {
+    const t = isHindi ? texts.hi : texts.en;
+
+    $("genTitle").innerText = t.title;
+    $("genDesc").innerText = t.desc;
+    $("helperText").innerText = t.helper;
+    $("generateBtn").innerText = t.generate;
+    $("controlsTitle").innerText = t.controls;
+    $("effectsTitle").innerText = t.effects;
+    $("lblBW").innerText = t.bw;
+    $("lblSepia").innerText = t.sepia;
+    $("lblContrast").innerText = t.contrast;
+    $("lblBrightness").innerText = t.brightness;
+    $("lblBlur").innerText = t.blur;
+    $("lblInvert").innerText = t.invert;
+    $("resetFilters").innerText = t.reset;
+    $("downloadTitle").innerText = t.download;
+    $("downloadBtn").innerText = t.downloadBtn;
+    $("image-placeholder").innerText = t.placeholder;
+    $("langToggle").innerText = isHindi ? "English" : "हिन्दी";
+  }
+
+  $("langToggle").onclick = () => {
+    isHindi = !isHindi;
+    applyLang();
+  };
+
+  applyLang(); // default
+});

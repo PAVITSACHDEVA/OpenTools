@@ -2,30 +2,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const generateBtn = document.getElementById("generateBtn");
   const progress = document.querySelector(".progress");
   const progressBar = document.querySelector(".progress-bar");
-
   const editor = document.getElementById("editor");
   const previewCanvas = document.getElementById("previewCanvas");
   const ctx = previewCanvas.getContext("2d");
-
   const imagePlaceholder = document.getElementById("image-placeholder");
-  const filterInputs = document.querySelectorAll(
-    "#filterControls input[type='range']"
-  );
-
+  const filterInputs = document.querySelectorAll("#filterControls input");
   const resetFiltersBtn = document.getElementById("resetFilters");
   const downloadBtn = document.getElementById("downloadBtn");
-
   const filenameInput = document.getElementById("filename");
   const formatSelect = document.getElementById("format");
   const qualityGroup = document.getElementById("qualityGroup");
   const qualitySlider = document.getElementById("quality");
+  const langBtn = document.getElementById("langToggle");
 
   let originalImage = null;
-
   const originalCanvas = document.createElement("canvas");
   const originalCtx = originalCanvas.getContext("2d");
 
-  const defaultFilters = {
+  const defaults = {
     grayscale: 0,
     sepia: 0,
     contrast: 100,
@@ -33,35 +27,31 @@ document.addEventListener("DOMContentLoaded", () => {
     blur: 0,
     invert: 0,
   };
-
-  let currentFilters = { ...defaultFilters };
+  let current = { ...defaults };
 
   function simulateProgress() {
     progress.style.display = "block";
     progressBar.style.width = "0%";
-
-    let width = 0;
-    return new Promise((resolve) => {
-      const interval = setInterval(() => {
-        width += Math.random() * 20;
-        progressBar.style.width = Math.min(width, 100) + "%";
-
-        if (width >= 100) {
-          clearInterval(interval);
+    let w = 0;
+    return new Promise((r) => {
+      const i = setInterval(() => {
+        w += Math.random() * 20;
+        progressBar.style.width = Math.min(w, 100) + "%";
+        if (w >= 100) {
+          clearInterval(i);
           progress.style.display = "none";
-          resolve();
+          r();
         }
       }, 80);
     });
   }
 
-  generateBtn.addEventListener("click", async () => {
+  generateBtn.onclick = async () => {
     generateBtn.disabled = true;
-    generateBtn.textContent = "Generating...";
-
+    generateBtn.innerText = isHindi ? "इमेज बन रही है..." : "Generating...";
     await simulateProgress();
 
-    const seed = Math.floor(Math.random() * 100000);
+    const seed = Math.floor(Math.random() * 99999);
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = `https://picsum.photos/seed/${seed}/1200/800`;
@@ -69,91 +59,74 @@ document.addEventListener("DOMContentLoaded", () => {
     img.onload = () => {
       originalCanvas.width = previewCanvas.width = img.width;
       originalCanvas.height = previewCanvas.height = img.height;
-
-      originalCtx.clearRect(0, 0, img.width, img.height);
       originalCtx.drawImage(img, 0, 0);
-
       originalImage = img;
 
       editor.classList.remove("hidden");
       imagePlaceholder.style.display = "none";
       previewCanvas.style.display = "block";
 
-      resetFilters();
-
+      reset();
       generateBtn.disabled = false;
-      generateBtn.textContent = "✨ Generate New Image";
+      generateBtn.innerText = isHindi ? "नई इमेज बनाएं" : "✨ Generate New Image";
     };
+  };
 
-    img.onerror = () => {
-      alert("Failed to generate image. Try again.");
-      generateBtn.disabled = false;
-      generateBtn.textContent = "✨ Generate New Image";
-    };
-  });
-
-  function applyFilters() {
-    if (!originalImage) return;
-
-    let filterString = "";
-
-    for (const [key, value] of Object.entries(currentFilters)) {
-      const input = document.getElementById(key);
-      const unit = input.dataset.unit;
-
-      if (value !== defaultFilters[key]) {
-        filterString += `${key}(${value}${unit}) `;
+  function apply() {
+    let f = "";
+    for (const k in current) {
+      if (current[k] !== defaults[k]) {
+        f += `${k}(${current[k]}${document.getElementById(k).dataset.unit}) `;
       }
     }
-
-    ctx.filter = filterString.trim();
-    ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    ctx.filter = f;
     ctx.drawImage(originalCanvas, 0, 0);
   }
 
-  filterInputs.forEach((input) => {
-    input.addEventListener("input", (e) => {
-      currentFilters[e.target.id] = e.target.value;
-      applyFilters();
-    });
-  });
+  filterInputs.forEach((i) =>
+    i.addEventListener("input", (e) => {
+      current[e.target.id] = e.target.value;
+      apply();
+    })
+  );
 
-  function resetFilters() {
-    currentFilters = { ...defaultFilters };
-    filterInputs.forEach((input) => {
-      input.value = defaultFilters[input.id];
-    });
-    applyFilters();
+  function reset() {
+    current = { ...defaults };
+    filterInputs.forEach((i) => (i.value = defaults[i.id]));
+    apply();
   }
 
-  resetFiltersBtn.addEventListener("click", resetFilters);
+  resetFiltersBtn.onclick = reset;
 
-  formatSelect.addEventListener("change", () => {
+  formatSelect.onchange = () => {
     qualityGroup.style.display =
       formatSelect.value === "image/jpeg" ? "block" : "none";
-  });
+  };
 
-  downloadBtn.addEventListener("click", () => {
-    if (!originalImage) return;
+  downloadBtn.onclick = () => {
+    previewCanvas.toBlob((b) => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(b);
+      a.download = `${filenameInput.value}.${formatSelect.value.split("/")[1]}`;
+      a.click();
+    }, formatSelect.value, qualitySlider.value);
+  };
 
-    const format = formatSelect.value;
-    const quality = parseFloat(qualitySlider.value);
-    const extension = format.split("/")[1];
-    const filename = `${filenameInput.value}.${extension}`;
-
-    previewCanvas.toBlob(
-      (blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      },
-      format,
-      quality
-    );
-  });
+  let isHindi = false;
+  langBtn.onclick = () => {
+    isHindi = !isHindi;
+    langBtn.innerText = isHindi ? "English" : "हिन्दी";
+    document.getElementById("genTitle").innerText = isHindi
+      ? "📸 इमेज जनरेटर और एडिटर"
+      : "📸 Image Generator & Editor";
+    document.getElementById("genDesc").innerText = isHindi
+      ? "बटन दबाएं → स्लाइडर बदलें → इमेज डाउनलोड करें"
+      : "Click the button → adjust sliders → download image";
+    imagePlaceholder.innerText = isHindi
+      ? "शुरू करने के लिए इमेज बनाएं"
+      : "Generate an image to begin editing.";
+    generateBtn.innerText = isHindi
+      ? "नई इमेज बनाएं"
+      : "✨ Generate New Image";
+  };
 });

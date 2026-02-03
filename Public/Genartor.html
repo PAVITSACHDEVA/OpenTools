@@ -1,121 +1,133 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Generator & Filter Editor</title>
-   <link rel="stylesheet" href="Style.css">
-    <link rel="stylesheet" href="site.css">
-    <link rel="stylesheet" href="generatorstyle.css">
-     <link rel="icon" type="image/png" href="Assest/Logo.png" />
-    
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image Generator | DocFix</title>
+
+  <link rel="stylesheet" href="Style.css" />
+  <link rel="stylesheet" href="generatorstyle.css" />
 </head>
+
 <body>
-<!-- <div class="loading-screen" id="loading">
-  <div class="loading-title" id="loadingText"></div>
-  <div class="loader-bar">
-    <div class="loader-bar-fill" id="loaderFill"></div>
-  </div>
-</div> -->
 
-<!-- 
-  <div id="content" class="show" style="display:none;">
-    <div class="app-container"> -->
-    
-  <header class="docfix-header">
-    <a href="../index.html" class="logo">DocFix</a>
-    <nav>
-      <a href="pdfCompressor.html">PDF</a>
-      <a href="Converter.html">Images</a>
-      <a href="Genartor.html">Generator</a>
-    </nav>
-  </header>
+<header class="docfix-header">
+  <a href="index.html" class="docfix-logo">DocFix</a>
+  <nav class="docfix-nav">
+    <a href="pdfCompressor.html">PDF</a>
+    <a href="Converter.html">Images</a>
+    <a href="Genartor.html">Generator</a>
+    <a href="ABOUT.html">About</a>
+  </nav>
 
-  <main class="docfix-main docfix-main--wide">
-    <section class="page-card">
-      <header>
-          <h1>📸 Image Generator & Editor</h1>
-          <p>Generate a random image, then apply filters and download your creation.</p>
-      </header>
+  <button id="langToggle" style="margin-left:16px;padding:6px 12px;border-radius:6px;">
+    हिन्दी
+  </button>
+</header>
 
-      <div class="generator-section">
-          <button id="generateBtn">✨ Generate New Image</button>
-          <div class="progress" style="display:none;">
-              <div class="progress-bar"></div>
+<main class="docfix-container">
+
+  <section class="page-card">
+
+    <h1 id="genTitle">📸 Image Generator & Editor</h1>
+    <p id="genDesc">
+      Click the button → adjust sliders → download image
+    </p>
+
+    <div class="generator-section">
+      <button id="generateBtn">✨ Generate New Image</button>
+      <p id="slowNote" style="font-size:0.85rem;opacity:0.7;margin-top:8px;">
+        Works on slow internet • No login needed
+      </p>
+
+      <div class="progress" style="display:none;">
+        <div class="progress-bar"></div>
+      </div>
+    </div>
+
+    <div id="editor" class="main-content hidden">
+
+      <div class="controls-panel">
+        <h2 id="controlsTitle">Controls</h2>
+
+        <div id="filterControls" class="filters-section">
+          <h3 id="filtersTitle">Image Effects</h3>
+
+          <div class="filter">
+            <label>Black & White</label>
+            <input type="range" id="grayscale" min="0" max="100" value="0" data-unit="%" />
           </div>
+
+          <div class="filter">
+            <label>Sepia</label>
+            <input type="range" id="sepia" min="0" max="100" value="0" data-unit="%" />
+          </div>
+
+          <div class="filter">
+            <label>Contrast</label>
+            <input type="range" id="contrast" min="0" max="200" value="100" data-unit="%" />
+          </div>
+
+          <div class="filter">
+            <label>Brightness</label>
+            <input type="range" id="brightness" min="0" max="200" value="100" data-unit="%" />
+          </div>
+
+          <div class="filter">
+            <label>Blur</label>
+            <input type="range" id="blur" min="0" max="10" value="0" step="0.1" data-unit="px" />
+          </div>
+
+          <div class="filter">
+            <label>Invert</label>
+            <input type="range" id="invert" min="0" max="100" value="0" data-unit="%" />
+          </div>
+
+          <button id="resetFilters">Reset</button>
+        </div>
+
+        <div class="download-section">
+          <h3 id="downloadTitle">Download</h3>
+
+          <label>Filename</label>
+          <input type="text" id="filename" value="image" />
+
+          <label>Format</label>
+          <select id="format">
+            <option value="image/png">PNG</option>
+            <option value="image/jpeg">JPEG</option>
+            <option value="image/webp">WEBP</option>
+          </select>
+
+          <div id="qualityGroup" style="display:none;">
+            <label>Image Clarity</label>
+            <input type="range" id="quality" min="0.1" max="1" step="0.1" value="0.9" />
+          </div>
+
+          <button id="downloadBtn">Download Image</button>
+        </div>
       </div>
 
-      <div id="editor" class="main-content hidden">
-          <div class="controls-panel">
-              <h2>Controls</h2>
-              <div id="filterControls" class="filters-section">
-                  <h3>Filters</h3>
-                  <div class="filter">
-                      <label for="grayscale">Black & White</label>
-                      <input type="range" id="grayscale" min="0" max="100" value="0" step="1" data-unit="%">
-                  </div>
-                  <div class="filter">
-                      <label for="sepia">Sepia</label>
-                      <input type="range" id="sepia" min="0" max="100" value="0" step="1" data-unit="%">
-                  </div>
-                  <div class="filter">
-                      <label for="contrast">Contrast</label>
-                      <input type="range" id="contrast" min="0" max="200" value="100" step="1" data-unit="%">
-                  </div>
-                  <div class="filter">
-                      <label for="brightness">Brightness</label>
-                      <input type="range" id="brightness" min="0" max="200" value="100" step="1" data-unit="%">
-                  </div>
-                  <div class="filter">
-                      <label for="blur">Blur</label>
-                      <input type="range" id="blur" min="0" max="10" value="0" step="0.1" data-unit="px">
-                  </div>
-                  <div class="filter">
-                      <label for="invert">Invert</label>
-                      <input type="range" id="invert" min="0" max="100" value="0" step="1" data-unit="%">
-                  </div>
-                  <button id="resetFilters">Reset Filters</button>
-              </div>
-
-              <div id="downloadSection" class="download-section">
-                  <h3>Download Options</h3>
-                  <div class="input-group">
-                      <label for="filename">Filename:</label>
-                      <input type="text" id="filename" value="filtered-image">
-                  </div>
-                  <div class="input-group">
-                      <label for="format">Format:</label>
-                      <select id="format">
-                          <option value="image/jpeg">JPEG</option>
-                          <option value="image/png" selected>PNG</option>
-                          <option value="image/webp">WEBP</option>
-                      </select>
-                  </div>
-                  <div class="input-group" id="qualityGroup">
-                      <label for="quality">Quality:</label>
-                      <input type="range" id="quality" min="0.1" max="1.0" value="0.9" step="0.1">
-                  </div>
-                  <button id="downloadBtn">Download Image</button>
-              </div>
-          </div>
-
-          <div class="preview-panel">
-              <div id="image-placeholder">
-                  <p>Generate an image to begin editing.</p>
-              </div>
-              <canvas id="previewCanvas"></canvas>
-          </div>
+      <div class="preview-panel">
+        <div id="image-placeholder">
+          Generate an image to begin editing.
+        </div>
+        <canvas id="previewCanvas"></canvas>
       </div>
-    </section>
-  </main>
-  
- 
- <script src="generaterscript.js"></script>
-     <!-- <script src="script.js"></script> -->
-   <audio id="sound-home" src="./Assest/Home.mp3" preload="auto"></audio>
+
+    </div>
+
+  </section>
+
+</main>
+
+<!-- AUDIO FILES (UNCHANGED) -->
+<audio id="sound-home" src="./Assest/Home.mp3" preload="auto"></audio>
 <audio id="sound-lumixcore" src="./Assest/lumix core ai.mp3" preload="auto"></audio>
 <audio id="sound-convert" src="./Assest/Image Converter.mp3" preload="auto"></audio>
 <audio id="sound-about" src="./Assest/About the AI.mp3" preload="auto"></audio>
 <audio id="sound-generator" src="./Assest/Random Image Generator.mp3" preload="auto"></audio>
+
+<script src="generaterscript.js"></script>
 </body>
 </html>

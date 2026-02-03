@@ -1,7 +1,4 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // ===============================
-  // DOM ELEMENTS
-  // ===============================
   const generateBtn = document.getElementById("generateBtn");
   const progress = document.querySelector(".progress");
   const progressBar = document.querySelector(".progress-bar");
@@ -23,9 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const qualityGroup = document.getElementById("qualityGroup");
   const qualitySlider = document.getElementById("quality");
 
-  // ===============================
-  // STATE
-  // ===============================
   let originalImage = null;
 
   const originalCanvas = document.createElement("canvas");
@@ -42,9 +36,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let currentFilters = { ...defaultFilters };
 
-  // ===============================
-  // PROGRESS BAR (FAKE BUT SMOOTH)
-  // ===============================
   function simulateProgress() {
     progress.style.display = "block";
     progressBar.style.width = "0%";
@@ -52,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let width = 0;
     return new Promise((resolve) => {
       const interval = setInterval(() => {
-        width += Math.random() * 15;
+        width += Math.random() * 20;
         progressBar.style.width = Math.min(width, 100) + "%";
 
         if (width >= 100) {
@@ -60,59 +51,47 @@ document.addEventListener("DOMContentLoaded", () => {
           progress.style.display = "none";
           resolve();
         }
-      }, 100);
+      }, 80);
     });
   }
 
-  // ===============================
-  // GENERATE IMAGE
-  // ===============================
   generateBtn.addEventListener("click", async () => {
     generateBtn.disabled = true;
     generateBtn.textContent = "Generating...";
 
     await simulateProgress();
 
-    const seed = Math.floor(Math.random() * 10000);
-    const imageUrl = `https://picsum.photos/seed/${seed}/1200/800`;
+    const seed = Math.floor(Math.random() * 100000);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = `https://picsum.photos/seed/${seed}/1200/800`;
 
-    try {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
+    img.onload = () => {
+      originalCanvas.width = previewCanvas.width = img.width;
+      originalCanvas.height = previewCanvas.height = img.height;
 
-      img.onload = () => {
-        originalCanvas.width = previewCanvas.width = img.width;
-        originalCanvas.height = previewCanvas.height = img.height;
+      originalCtx.clearRect(0, 0, img.width, img.height);
+      originalCtx.drawImage(img, 0, 0);
 
-        originalCtx.clearRect(0, 0, img.width, img.height);
-        originalCtx.drawImage(img, 0, 0);
+      originalImage = img;
 
-        originalImage = img;
+      editor.classList.remove("hidden");
+      imagePlaceholder.style.display = "none";
+      previewCanvas.style.display = "block";
 
-        editor.classList.remove("hidden");
-        imagePlaceholder.style.display = "none";
-        previewCanvas.style.display = "block";
+      resetFilters();
 
-        resetFilters();
-      };
-
-      img.onerror = () => {
-        alert("Failed to load image. Please try again.");
-      };
-
-      img.src = imageUrl;
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong while generating the image.");
-    } finally {
       generateBtn.disabled = false;
       generateBtn.textContent = "✨ Generate New Image";
-    }
+    };
+
+    img.onerror = () => {
+      alert("Failed to generate image. Try again.");
+      generateBtn.disabled = false;
+      generateBtn.textContent = "✨ Generate New Image";
+    };
   });
 
-  // ===============================
-  // FILTER LOGIC
-  // ===============================
   function applyFilters() {
     if (!originalImage) return;
 
@@ -149,9 +128,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   resetFiltersBtn.addEventListener("click", resetFilters);
 
-  // ===============================
-  // DOWNLOAD LOGIC
-  // ===============================
   formatSelect.addEventListener("change", () => {
     qualityGroup.style.display =
       formatSelect.value === "image/jpeg" ? "block" : "none";

@@ -1,6 +1,10 @@
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
+import multer from "multer";
+import { execFile } from "child_process";
+import fs from "fs";
+import path from "path";
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -19,9 +23,6 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
-/* ================= MEMORY ================= */
-const chatHistory = {};
-
 /* ================= AI STREAM ================= */
 
 /* ================= WEATHER ================= */
@@ -32,12 +33,25 @@ app.get("/api/weather", async (req, res) => {
       return res.status(400).json({ error: "City required" });
     }
 
+    if (!process.env.WEATHER_API_KEY) {
+      return res.status(500).json({ error: "Weather API key missing" });
+    }
+
     const r = await fetch(
       `https://api.weatherapi.com/v1/current.json?key=${process.env.WEATHER_API_KEY}&q=${encodeURIComponent(city)}`
     );
+
+    if (!r.ok) {
+      return res.status(r.status).json({ error: "Weather fetch failed" });
+    }
+
     const d = await r.json();
 
-    res.json({
+    if (!d?.location || !d?.current) {
+      return res.status(502).json({ error: "Unexpected weather response" });
+    }
+
+    return res.json({
       location: d.location.name,
       temp: d.current.temp_c,
       condition: d.current.condition.text,
@@ -52,10 +66,6 @@ app.get("/api/weather", async (req, res) => {
 // ================================
 // PDF COMPRESSION (GHOSTSCRIPT)
 // ================================
-import multer from "multer";
-import { exec } from "child_process";
-import fs from "fs";
-import path from "path";
 
 const upload = multer({ dest: "tmp/" });
 
@@ -67,25 +77,36 @@ app.post("/api/compress", upload.single("file"), async (req, res) => {
   const inputPath = req.file.path;
   const outputPath = `${inputPath}-compressed.pdf`;
 
-  const gsCommand = `
-    gs -sDEVICE=pdfwrite \
-       -dCompatibilityLevel=1.4 \
-       -dPDFSETTINGS=/ebook \
-       -dNOPAUSE -dQUIET -dBATCH \
-       -sOutputFile=${outputPath} \
-       ${inputPath}
-  `;
+  const gsArgs = [
+    "-sDEVICE=pdfwrite",
+    "-dCompatibilityLevel=1.4",
+    "-dPDFSETTINGS=/ebook",
+    "-dNOPAUSE",
+    "-dQUIET",
+    "-dBATCH",
+    `-sOutputFile=${outputPath}`,
+    inputPath
+  ];
 
-  exec(gsCommand, (error) => {
+  execFile("gs", gsArgs, async (error) => {
     if (error) {
       console.error("Ghostscript error:", error);
+      await Promise.allSettled([
+        fs.promises.unlink(inputPath),
+        fs.promises.unlink(outputPath)
+      ]);
       return res.status(500).send("Compression failed");
     }
 
     res.setHeader("Content-Type", "application/pdf");
-    res.sendFile(path.resolve(outputPath), () => {
-      fs.unlinkSync(inputPath);
-      fs.unlinkSync(outputPath);
+    res.sendFile(path.resolve(outputPath), async (sendError) => {
+      if (sendError) {
+        console.error("Send file error:", sendError);
+      }
+      await Promise.allSettled([
+        fs.promises.unlink(inputPath),
+        fs.promises.unlink(outputPath)
+      ]);
     });
   });
 });

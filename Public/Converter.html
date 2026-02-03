@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
  <title>Image Converter | DocFix</title>
   <link rel="stylesheet" href="Style.css">
+  <link rel="stylesheet" href="site.css">
   <link rel="stylesheet" href="converterstyle.css">
   <link rel="icon" type="image/png" href="Assest/Logo.png" />
 </head>
@@ -16,103 +17,105 @@
 
  
   <header class="docfix-header">
-    <a href="index.html" class="logo">DocFix</a>
+    <a href="../index.html" class="logo">DocFix</a>
     <nav>
       <a href="pdfCompressor.html">PDF</a>
       <a href="Converter.html">Images</a>
       <a href="Genartor.html">Generator</a>
     </nav>
   </header>
-  
 
-    <h1>🖼️ <span class="gradient-text">Image Converter Pro</span></h1>
+  <main class="docfix-main">
+    <section class="page-card">
+      <h1>🖼️ <span class="gradient-text">Image Converter Pro</span></h1>
 
-    <div class="upload-box">
-      <input type="file" id="fileUpload" accept="image/*" hidden multiple />
-      <label for="fileUpload" class="upload-label">
-        <span class="upload-text" id="uploadText">📁 Drag & drop image(s) here<br>or click to upload</span>
-        <p class="hint">PNG · JPG · WebP · GIF · BMP</p>
-      </label>
-    </div>
-
-    <img id="previewImage" alt="Preview" />
-
-    <div id="batchRenameContainer" class="batch-rename-container">
-        <label>
-            <span class="gradient-text">Batch Rename Prefix</span>
-            <input type="text" id="batchRenameInput" placeholder="e.g., 'vacation-img'">
+      <div class="upload-box">
+        <input type="file" id="fileUpload" accept="image/*" hidden multiple />
+        <label for="fileUpload" class="upload-label">
+          <span class="upload-text" id="uploadText">📁 Drag & drop image(s) here<br>or click to upload</span>
+          <p class="hint">PNG · JPG · WebP · GIF · BMP</p>
         </label>
-    </div>
+      </div>
 
-    <div class="settings-grid">
-        <div class="controls-group">
-            <h3>Format & Quality</h3>
-            <label>
-                <span class="gradient-text">Convert to</span>
-                <select id="format">
-                  <option value="image/png">PNG</option>
-                  <option value="image/jpeg">JPG</option>
-                  <option value="image/webp">WebP</option>
-                  <option value="image/bmp">BMP</option>
-                  <option value="image/gif">GIF</option>
-                </select>
-            </label>
-            <label id="qualityControl">
-                <div class="quality-label">
-                    <span class="gradient-text">Quality</span>
-                    <span id="qualityValue">92%</span>
-                </div>
-                <input type="range" id="qualitySlider" min="1" max="100" value="92" class="slider">
-            </label>
-            <label>
-                <span class="gradient-text">Filter</span>
-                <select id="filter">
-                  <option value="none">None</option>
-                  <option value="grayscale(100%)">Grayscale</option>
-                  <option value="sepia(100%)">Sepia</option>
-                  <option value="invert(100%)">Invert</option>
-                  <option value="blur(5px)">Blur</option>
-                </select>
-            </label>
-        </div>
-        <div class="controls-group">
-            <h3>Resize & Options</h3>
-            <div class="resize-controls">
-                <label><span class="gradient-text">Width</span><input type="number" id="targetW" placeholder="Auto"></label>
-                <label><span class="gradient-text">Height</span><input type="number" id="targetH" placeholder="Auto"></label>
-            </div>
-            <div class="checkbox-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="aspectLock" checked> Lock Aspect Ratio
-                </label>
-                <label class="checkbox-label">
-                    <input type="checkbox" id="metadata" checked> Clean Metadata (EXIF)
-                </label>
-            </div>
-            <div class="size-estimator">
-                <span class="gradient-text">Estimated Size:</span>
-                <span id="sizeEstimate">-- KB</span>
-            </div>
-        </div>
-    </div>
+      <img id="previewImage" alt="Preview" />
 
-    <div class="actions">
-      <button id="convertBtn" disabled>Convert & Download</button>
-      <button id="copyBtn">Copy Image</button>
-      <button id="clearBtn">Clear</button>
-      <button id="voiceBtn" title="Voice Control">🎤</button>
-    </div>
-    <div class="progress-container">
-        <p id="progressText" class="progress-text"></p>
-        <div class="progress"><div class="progress-bar"></div></div>
-    </div>
+      <div id="batchRenameContainer" class="batch-rename-container">
+          <label>
+              <span class="gradient-text">Batch Rename Prefix</span>
+              <input type="text" id="batchRenameInput" placeholder="e.g., 'vacation-img'">
+          </label>
+      </div>
 
-    <div id="history" class="history-container">
-        <h3>Conversion History</h3>
-        <div id="historyList" class="history-list"></div>
-    </div>
-  </div>
-  
+      <div class="settings-grid">
+          <div class="controls-group">
+              <h3>Format & Quality</h3>
+              <label>
+                  <span class="gradient-text">Convert to</span>
+                  <select id="format">
+                    <option value="image/png">PNG</option>
+                    <option value="image/jpeg">JPG</option>
+                    <option value="image/webp">WebP</option>
+                    <option value="image/bmp">BMP</option>
+                    <option value="image/gif">GIF</option>
+                  </select>
+              </label>
+              <label id="qualityControl">
+                  <div class="quality-label">
+                      <span class="gradient-text">Quality</span>
+                      <span id="qualityValue">92%</span>
+                  </div>
+                  <input type="range" id="qualitySlider" min="1" max="100" value="92" class="slider">
+              </label>
+              <label>
+                  <span class="gradient-text">Filter</span>
+                  <select id="filter">
+                    <option value="none">None</option>
+                    <option value="grayscale(100%)">Grayscale</option>
+                    <option value="sepia(100%)">Sepia</option>
+                    <option value="invert(100%)">Invert</option>
+                    <option value="blur(5px)">Blur</option>
+                  </select>
+              </label>
+          </div>
+          <div class="controls-group">
+              <h3>Resize & Options</h3>
+              <div class="resize-controls">
+                  <label><span class="gradient-text">Width</span><input type="number" id="targetW" placeholder="Auto"></label>
+                  <label><span class="gradient-text">Height</span><input type="number" id="targetH" placeholder="Auto"></label>
+              </div>
+              <div class="checkbox-group">
+                  <label class="checkbox-label">
+                      <input type="checkbox" id="aspectLock" checked> Lock Aspect Ratio
+                  </label>
+                  <label class="checkbox-label">
+                      <input type="checkbox" id="metadata" checked> Clean Metadata (EXIF)
+                  </label>
+              </div>
+              <div class="size-estimator">
+                  <span class="gradient-text">Estimated Size:</span>
+                  <span id="sizeEstimate">-- KB</span>
+              </div>
+          </div>
+      </div>
+
+      <div class="actions">
+        <button id="convertBtn" disabled>Convert & Download</button>
+        <button id="copyBtn">Copy Image</button>
+        <button id="clearBtn">Clear</button>
+        <button id="voiceBtn" title="Voice Control">🎤</button>
+      </div>
+      <div class="progress-container">
+          <p id="progressText" class="progress-text"></p>
+          <div class="progress"><div class="progress-bar"></div></div>
+      </div>
+
+      <div id="history" class="history-container">
+          <h3>Conversion History</h3>
+          <div id="historyList" class="history-list"></div>
+      </div>
+    </section>
+  </main>
+
   <div id="toastContainer"></div>
 
   <audio id="sound-home" src="./Assest/Home.mp3" preload="auto"></audio>

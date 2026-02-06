@@ -1,14 +1,28 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Zap, 
+  FileStack, 
+  RotateCw, 
+  Tag, 
+  Unlock, 
+  Type, 
+  History, 
+  UploadCloud, 
+  X, 
+  Download, 
+  Check, 
+  Sliders, 
+  Play, 
+  CheckCircle2, 
+  AlertCircle,
+  FileText
+} from 'lucide-react';
 
 /**
  * PDF SQUEEZE PRO - App.jsx
  * High-performance PDF utility suite using window.PDFLib for 100% client-side processing.
  * Features: Compression, Merging, Rotation, Metadata editing, Security unlocking, and Watermarking.
  */
-useEffect(() => {
-  if (window.lucide) {
-    window.lucide.createIcons();
-  }
-});
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('optimize');
@@ -199,14 +213,13 @@ export default function App() {
 
         <nav className="flex bg-slate-900/50 p-1 rounded-2xl border border-slate-800 backdrop-blur overflow-x-auto max-w-full no-scrollbar">
           {[
-          { id: 'optimize', icon: <span><i data-lucide="zap"></i></span>, label: 'Crush' },
-{ id: 'merge', icon: <span><i data-lucide="layers"></i></span>, label: 'Merge' },
-{ id: 'rotate', icon: <span><i data-lucide="rotate-cw"></i></span>, label: 'Rotate' },
-{ id: 'metadata', icon: <span><i data-lucide="tag"></i></span>, label: 'Meta' },
-{ id: 'unlock', icon: <span><i data-lucide="unlock"></i></span>, label: 'Unlock' },
-{ id: 'watermark', icon: <span><i data-lucide="type"></i></span>, label: 'Stamp' },
-{ id: 'history', icon: <span><i data-lucide="history"></i></span>, label: 'Logs' },
-
+            { id: 'optimize', icon: <Zap size={14}/>, label: 'Crush' },
+            { id: 'merge', icon: <FileStack size={14}/>, label: 'Merge' },
+            { id: 'rotate', icon: <RotateCw size={14}/>, label: 'Rotate' },
+            { id: 'metadata', icon: <Tag size={14}/>, label: 'Meta' },
+            { id: 'unlock', icon: <Unlock size={14}/>, label: 'Unlock' },
+            { id: 'watermark', icon: <Type size={14}/>, label: 'Stamp' },
+            { id: 'history', icon: <History size={14}/>, label: 'Logs' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -279,9 +292,8 @@ export default function App() {
 
             {activeTab !== 'history' && (
               <button
-  disabled={activeTab === 'optimize' || files.length === 0 || isProcessing}
-  onClick={processBatch}
-
+                disabled={files.length === 0 || isProcessing}
+                onClick={processBatch}
                 className="w-full mt-8 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-20 disabled:cursor-not-allowed text-white font-black py-5 rounded-2xl shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
               >
                 <Play size={18} fill="currentColor" />
@@ -293,13 +305,9 @@ export default function App() {
 
         {/* File Queue & Results Column */}
         <div className="lg:col-span-8 space-y-8">
-         {activeTab === 'optimize' ? (
-  <CrushUnderDevelopment />
-) : activeTab !== 'history' ? (
-  <>
-    {/* Dropzone */}
-    ...
-
+          {activeTab !== 'history' ? (
+            <>
+              {/* Dropzone */}
               <div 
                 onClick={() => fileInputRef.current?.click()}
                 className="bg-slate-900 border-2 border-dashed border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-500/5 rounded-[3rem] p-12 md:p-20 text-center transition-all cursor-pointer group"

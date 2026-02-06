@@ -199,7 +199,7 @@ export default function App() {
 
         <nav className="flex bg-slate-900/50 p-1 rounded-2xl border border-slate-800 backdrop-blur overflow-x-auto max-w-full no-scrollbar">
           {[
-          { id: 'optimize', icon: <span><i data-lucide="zap"></i></span>, label: 'Crush' },
+                  { id: 'optimize', icon: <span><i data-lucide="zap"></i></span>, label: 'Crush' },
 { id: 'merge', icon: <span><i data-lucide="layers"></i></span>, label: 'Merge' },
 { id: 'rotate', icon: <span><i data-lucide="rotate-cw"></i></span>, label: 'Rotate' },
 { id: 'metadata', icon: <span><i data-lucide="tag"></i></span>, label: 'Meta' },

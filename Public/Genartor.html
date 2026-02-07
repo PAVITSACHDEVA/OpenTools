@@ -4,45 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Image Generator | DocFix</title>
-
-<link rel="stylesheet" href="Style.css">
 <link rel="stylesheet" href="generatorstyle.css">
 </head>
-
 <body>
 
-<!-- LOADER -->
-<div class="loading-screen" id="loading">
-  <div class="loading-title" id="loadingText">Random Image Generator</div>
-  <div class="loader-bar">
-    <div class="loader-bar-fill" id="loaderFill"></div>
-  </div>
-</div>
+<div class="generator-card">
 
-<header class="docfix-header">
-  <a href="index.html" class="docfix-logo">DocFix</a>
-
-  <nav class="docfix-nav">
-    <a href="pdfCompressor.html">PDF</a>
-    <a href="Converter.html">Images</a>
-    <a href="Genartor.html">Generator</a>
-    <a href="ABOUT.html">About</a>
-    <button id="langToggle" class="lang-btn">हिन्दी</button>
-  </nav>
-</header>
-
-<main class="docfix-container">
-
-<section class="generator-card">
-
-<h1 id="genTitle">📸 Image Generator</h1>
-<p id="genDesc">Click the button → adjust sliders → download image</p>
+<h1 id="genTitle">📸 Image Generator & Editor</h1>
+<p id="genDesc">Generate random images, edit, and download</p>
 
 <button id="generateBtn" class="primary-btn">✨ Generate New Image</button>
-
-<p id="helperText" class="helper-text">
-Works on slow internet • No login needed
-</p>
 
 <div class="progress" style="display:none;">
   <div class="progress-bar"></div>
@@ -52,33 +23,38 @@ Works on slow internet • No login needed
 
 <div class="controls" id="filterControls">
 
+<h2>Presets</h2>
+<div class="presets">
+<button data-preset="vintage">Vintage</button>
+<button data-preset="cinematic">Cinematic</button>
+<button data-preset="bwpro">B&W Pro</button>
+</div>
 
-<h2 id="controlsTitle">Controls</h2>
+<h2>Filters</h2>
 
-<label>Black & White</label>
+<label>Black & White <span class="value" id="grayscaleVal">0</span></label>
 <input type="range" id="grayscale" min="0" max="100" value="0" data-unit="%">
 
-<label>Sepia</label>
+<label>Sepia <span class="value" id="sepiaVal">0</span></label>
 <input type="range" id="sepia" min="0" max="100" value="0" data-unit="%">
 
-<label>Contrast</label>
+<label>Contrast <span class="value" id="contrastVal">100</span></label>
 <input type="range" id="contrast" min="0" max="200" value="100" data-unit="%">
 
-<label>Brightness</label>
+<label>Brightness <span class="value" id="brightnessVal">100</span></label>
 <input type="range" id="brightness" min="0" max="200" value="100" data-unit="%">
 
-<label>Blur</label>
+<label>Blur <span class="value" id="blurVal">0</span></label>
 <input type="range" id="blur" min="0" max="10" step="0.1" value="0" data-unit="px">
 
-<label>Invert</label>
+<label>Invert <span class="value" id="invertVal">0</span></label>
 <input type="range" id="invert" min="0" max="100" value="0" data-unit="%">
 
-<button id="resetFilters">Reset</button>
+<button id="resetFilters">Reset Filters</button>
 
-<h3>Download</h3>
+<h2>Download</h2>
 
 <input type="text" id="filename" value="image">
-
 <select id="format">
 <option value="image/png">PNG</option>
 <option value="image/jpeg">JPEG</option>
@@ -92,12 +68,12 @@ Works on slow internet • No login needed
 <div class="preview">
 <div id="image-placeholder">Generate an image to begin editing.</div>
 <canvas id="previewCanvas"></canvas>
+<div class="history" id="history"></div>
 </div>
 
 </div>
 
-</section>
-</main>
+</div>
 
 <script src="generaterscript.js"></script>
 </body>

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <title>PDF Squeeze Pro</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <!-- React -->
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -22,28 +22,13 @@ body { background:#020617; }
 </head>
 
 <body>
-  
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useEffect } = React;
+const { useState } = React;
 
-/* ================= AUTH ================= */
-const ROLES = {
-  "1-D": "developer",
-  "1-A": "admin",
-  "1-T": "tester"
-};
-
-/* ================= PRESETS ================= */
-const COMPRESSION_PRESETS = {
-  light: { label:"Light", opts:{ useObjectStreams:false }},
-  balanced: { label:"Balanced", opts:{ useObjectStreams:true }},
-  aggressive: { label:"Aggressive", opts:{ useObjectStreams:true, addDefaultPage:false }}
-};
-
-/* ================= UTIL ================= */
-const saveLog = (msg) => {
+/* ================= LOGS ================= */
+const addLog = msg => {
   const logs = JSON.parse(localStorage.getItem("logs") || "[]");
   logs.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
   localStorage.setItem("logs", JSON.stringify(logs));
@@ -51,50 +36,32 @@ const saveLog = (msg) => {
 
 /* ================= APP ================= */
 function App() {
-  const [tab, setTab] = useState("crush");
-  const [role, setRole] = useState(null);
+  const [tab, setTab] = useState("merge");
   const [files, setFiles] = useState([]);
-  const [progress, setProgress] = useState({});
   const [results, setResults] = useState([]);
-  const [logs, setLogs] = useState(JSON.parse(localStorage.getItem("logs")||"[]"));
+  const [progress, setProgress] = useState({});
+  const [logs] = useState(JSON.parse(localStorage.getItem("logs") || "[]"));
 
-  const login = () => {
-    const pass = prompt("Enter password");
-    if (ROLES[pass]) {
-      setRole(ROLES[pass]);
-      saveLog(`Logged in as ${ROLES[pass]}`);
-      setLogs(JSON.parse(localStorage.getItem("logs")));
-    } else alert("Wrong password");
-  };
-
-  const onDrop = (e) => {
+  const onDrop = e => {
     e.preventDefault();
-    const pdfs = [...e.dataTransfer.files].filter(f=>f.type==="application/pdf");
+    const pdfs = [...e.dataTransfer.files].filter(f => f.type === "application/pdf");
     setFiles(pdfs);
-    saveLog(`${pdfs.length} file(s) added`);
-    setLogs(JSON.parse(localStorage.getItem("logs")));
+    addLog(`${pdfs.length} PDF(s) added`);
   };
 
   return (
-    <div className="min-h-screen p-8 text-slate-100 max-w-6xl mx-auto">
-
-      {/* HEADER */}
-      <div className="flex justify-between mb-8">
-        <h1 className="text-4xl font-black bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-          PDF SQUEEZE PRO
-        </h1>
-        <button onClick={login} className="text-xs tracking-widest">
-          {role ? role.toUpperCase() : "ADMIN"}
-        </button>
-      </div>
+    <div className="max-w-6xl mx-auto p-8 text-white">
+      <h1 className="text-4xl font-black mb-6 bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+        PDF SQUEEZE PRO
+      </h1>
 
       {/* TABS */}
       <div className="flex gap-2 mb-6">
-        {["crush","merge","rotate","stamp","unlock"].map(t=>(
+        {["merge","rotate","stamp","unlock","crush"].map(t => (
           <button key={t}
-            onClick={()=>setTab(t)}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase
-            ${tab===t?"bg-indigo-600":"bg-slate-800 text-slate-400"}`}>
+            onClick={() => setTab(t)}
+            className={`px-4 py-2 rounded-xl uppercase text-xs font-black
+              ${tab===t?"bg-indigo-600":"bg-slate-800 text-slate-400"}`}>
             {t}
           </button>
         ))}
@@ -105,22 +72,28 @@ function App() {
         onDragOver={e=>e.preventDefault()}
         onDrop={onDrop}
         className="border-2 border-dashed border-slate-700 rounded-3xl p-10 text-center mb-6">
-        Drag & drop PDFs here
+        Drag & Drop PDFs Here
       </div>
 
-      {/* CONTENT */}
-      {tab==="crush"
-        ? <Crush role={role} files={files} setProgress={setProgress} setResults={setResults}/>
-        : <Engine tab={tab} files={files} setProgress={setProgress} setResults={setResults}/>
-      }
+      {/* TOOLS */}
+      {tab==="merge" && <MergeTool files={files} setResults={setResults} />}
+      {tab==="rotate" && <RotateTool files={files} setResults={setResults} setProgress={setProgress} />}
+      {tab==="stamp" && <StampTool files={files} setResults={setResults} setProgress={setProgress} />}
+      {tab==="unlock" && <UnlockTool files={files} setResults={setResults} setProgress={setProgress} />}
+      {tab==="crush" && (
+        <div className="bg-slate-900 rounded-3xl p-12 text-center">
+          <h2 className="text-2xl font-black">CRUSH</h2>
+          <p className="text-slate-400">Under Development</p>
+        </div>
+      )}
 
       {/* RESULTS */}
-      {results.length>0 && (
+      {results.length > 0 && (
         <div className="mt-10 space-y-3">
-          <h3 className="text-xs uppercase tracking-widest text-emerald-400">Results</h3>
-          {results.map(r=>(
+          <h3 className="text-xs uppercase tracking-widest text-emerald-400">Downloads</h3>
+          {results.map(r => (
             <a key={r.name} href={r.url} download={r.name}
-              className="block bg-emerald-600 text-slate-950 px-6 py-3 rounded-xl font-black text-sm">
+              className="block bg-emerald-600 text-slate-950 px-6 py-3 rounded-xl font-black">
               Download {r.name}
             </a>
           ))}
@@ -134,72 +107,124 @@ function App() {
           {logs.map((l,i)=><div key={i}>{l}</div>)}
         </div>
       </div>
-
     </div>
   );
 }
 
-/* ================= CRUSH ================= */
-function Crush({ role, files, setProgress, setResults }) {
+/* ================= MERGE ================= */
+function MergeTool({ files, setResults }) {
+  const [name, setName] = useState("merged.pdf");
 
-  if (!role || role==="tester") {
-    return (
-      <div className="bg-slate-900 rounded-3xl p-14 text-center">
-        <h2 className="text-2xl font-black mb-2">CRUSH · UNDER DEVELOPMENT</h2>
-        <p className="text-slate-400">Compression engine coming soon</p>
-      </div>
-    );
-  }
+  const run = async () => {
+    const { PDFDocument } = PDFLib;
+    const merged = await PDFDocument.create();
 
-  const run = async (presetKey) => {
-    const out = [];
     for (const f of files) {
-      setProgress(p=>({ ...p, [f.name]: 0 }));
-      const bytes = await f.arrayBuffer();
-      const pdf = await PDFLib.PDFDocument.load(bytes);
-      const newBytes = await pdf.save(COMPRESSION_PRESETS[presetKey].opts);
-      const blob = new Blob([newBytes], { type:"application/pdf" });
-      out.push({ name:`${presetKey}_${f.name}`, url:URL.createObjectURL(blob) });
-      saveLog(`CRUSH ${presetKey}: ${f.name}`);
+      const pdf = await PDFDocument.load(await f.arrayBuffer());
+      const pages = await merged.copyPages(pdf, pdf.getPageIndices());
+      pages.forEach(p => merged.addPage(p));
+    }
+
+    const bytes = await merged.save();
+    setResults([{ name, url: URL.createObjectURL(new Blob([bytes],{type:"application/pdf"})) }]);
+    addLog("Merged PDFs");
+  };
+
+  return (
+    <div className="bg-slate-900 rounded-3xl p-10 space-y-4">
+      <input value={name} onChange={e=>setName(e.target.value)}
+        className="bg-slate-800 p-3 rounded-xl w-full" />
+      <button onClick={run} className="bg-indigo-600 px-6 py-3 rounded-xl font-black">MERGE</button>
+    </div>
+  );
+}
+
+/* ================= ROTATE ================= */
+function RotateTool({ files, setResults }) {
+  const [angle, setAngle] = useState(90);
+
+  const run = async () => {
+    const out = [];
+    const { PDFDocument, degrees } = PDFLib;
+
+    for (const f of files) {
+      const pdf = await PDFDocument.load(await f.arrayBuffer());
+      pdf.getPages().forEach(p => p.setRotation(degrees(angle)));
+      const bytes = await pdf.save();
+      out.push({ name:`rotated_${f.name}`, url:URL.createObjectURL(new Blob([bytes],{type:"application/pdf"})) });
     }
     setResults(out);
+    addLog("Rotated PDFs");
+  };
+
+  return (
+    <div className="bg-slate-900 rounded-3xl p-10 space-y-4">
+      <select value={angle} onChange={e=>setAngle(+e.target.value)}
+        className="bg-slate-800 p-3 rounded-xl">
+        <option value={90}>90°</option>
+        <option value={180}>180°</option>
+        <option value={270}>270°</option>
+      </select>
+      <button onClick={run} className="bg-indigo-600 px-6 py-3 rounded-xl font-black">ROTATE</button>
+    </div>
+  );
+}
+
+/* ================= STAMP ================= */
+function StampTool({ files, setResults }) {
+  const [text, setText] = useState("DRAFT");
+  const [size, setSize] = useState(40);
+  const [opacity, setOpacity] = useState(0.3);
+
+  const run = async () => {
+    const out = [];
+    const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
+
+    for (const f of files) {
+      const pdf = await PDFDocument.load(await f.arrayBuffer());
+      const font = await pdf.embedFont(StandardFonts.HelveticaBold);
+      pdf.getPages().forEach(p => {
+        const { width, height } = p.getSize();
+        p.drawText(text,{
+          x: width/4, y: height/2,
+          size, rotate:degrees(45),
+          opacity, color:rgb(0.6,0.6,0.6), font
+        });
+      });
+      const bytes = await pdf.save();
+      out.push({ name:`stamped_${f.name}`, url:URL.createObjectURL(new Blob([bytes],{type:"application/pdf"})) });
+    }
+    setResults(out);
+    addLog("Stamped PDFs");
+  };
+
+  return (
+    <div className="bg-slate-900 rounded-3xl p-10 space-y-4">
+      <input value={text} onChange={e=>setText(e.target.value)}
+        className="bg-slate-800 p-3 rounded-xl w-full" />
+      <button onClick={run} className="bg-indigo-600 px-6 py-3 rounded-xl font-black">STAMP</button>
+    </div>
+  );
+}
+
+/* ================= UNLOCK ================= */
+function UnlockTool({ files, setResults }) {
+  const run = async () => {
+    const out = [];
+    const { PDFDocument } = PDFLib;
+
+    for (const f of files) {
+      const pdf = await PDFDocument.load(await f.arrayBuffer(),{ignoreEncryption:true});
+      const bytes = await pdf.save();
+      out.push({ name:`unlocked_${f.name}`, url:URL.createObjectURL(new Blob([bytes],{type:"application/pdf"})) });
+    }
+    setResults(out);
+    addLog("Unlocked PDFs");
   };
 
   return (
     <div className="bg-slate-900 rounded-3xl p-10">
-      <h2 className="text-xl font-black mb-6">CRUSH · ADMIN MODE</h2>
-      <div className="flex gap-3">
-        {Object.entries(COMPRESSION_PRESETS).map(([k,v])=>(
-          <button key={k} onClick={()=>run(k)}
-            className="bg-indigo-600 px-5 py-3 rounded-xl text-xs font-black">
-            {v.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ================= OTHER ENGINES ================= */
-function Engine({ tab, files, setProgress, setResults }) {
-  const run = async () => {
-    const out = [];
-    for (const f of files) {
-      setProgress(p=>({ ...p, [f.name]: 0 }));
-      await new Promise(r=>setTimeout(r,400));
-      out.push({ name:`${tab}_${f.name}`, url:URL.createObjectURL(f) });
-      saveLog(`${tab.toUpperCase()}: ${f.name}`);
-    }
-    setResults(out);
-  };
-
-  return (
-    <div className="bg-slate-900 rounded-3xl p-10 text-center">
-      <h2 className="text-xl font-black mb-4">{tab.toUpperCase()}</h2>
-      <button onClick={run}
-        className="bg-indigo-600 px-6 py-3 rounded-xl font-black">
-        RUN
-      </button>
+      <button onClick={run} className="bg-indigo-600 px-6 py-3 rounded-xl font-black">UNLOCK</button>
     </div>
   );
 }

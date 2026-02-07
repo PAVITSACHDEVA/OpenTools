@@ -43,99 +43,141 @@
 
 <div id="root"></div>
 <script type="text/babel">
-  console.log("VERSION: CRUSH-ADMIN-GATE");
-
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 
 /* ================= CONFIG ================= */
-const ADMIN_PASSWORD = "change-this-password"; // 🔑 YOU control this
+const ADMIN_PASSWORD = "your-secret-password";
 
-/* ================= UNDER DEV CARD ================= */
-function UnderDevelopment({ title }) {
-  return (
-    <div className="bg-slate-900 border border-slate-800 rounded-[3rem] p-20 text-center">
-      <div className="mx-auto mb-6 w-16 h-16 flex items-center justify-center rounded-2xl bg-yellow-500/10 text-yellow-400">
-        <i data-lucide="alert-triangle"></i>
-      </div>
-      <h2 className="text-2xl font-black mb-3 italic uppercase">
-        {title} Under Development
-      </h2>
-      <p className="text-slate-400 text-sm">
-        This feature is currently being worked on.<br />
-        Please check back soon.
+/* ================= UTIL ================= */
+const getLib = () => window.PDFLib;
+
+/* ================= UNDER DEV ================= */
+const UnderDevelopment = ({ title }) => (
+  <div className="bg-slate-900 border border-slate-800 rounded-[3rem] p-20 text-center">
+    <div className="mx-auto mb-6 w-16 h-16 flex items-center justify-center rounded-2xl bg-yellow-500/10 text-yellow-400">
+      <i data-lucide="alert-triangle"></i>
+    </div>
+    <h2 className="text-2xl font-black mb-3 italic uppercase">
+      {title} Under Development
+    </h2>
+    <p className="text-slate-400 text-sm">
+      This feature is currently being built.
+    </p>
+  </div>
+);
+
+/* ================= CRUSH DEV ================= */
+const CrushDev = () => (
+  <div className="bg-slate-900 border border-slate-800 rounded-[3rem] p-12">
+    <h2 className="text-xl font-black uppercase tracking-widest mb-4">
+      CRUSH · ADMIN MODE
+    </h2>
+    <p className="text-slate-400 text-sm">
+      Plug your compression logic here safely.
+    </p>
+  </div>
+);
+
+/* ================= FILE PICKER ================= */
+const FilePicker = ({ onPick }) => (
+  <label className="block border-2 border-dashed border-slate-700 rounded-[3rem] p-12 text-center cursor-pointer hover:border-indigo-500 transition">
+    <i data-lucide="upload-cloud" className="mx-auto mb-4"></i>
+    <p className="font-bold">Click to add PDFs</p>
+    <p className="text-xs text-slate-500 mt-1">Local processing only</p>
+    <input type="file" accept=".pdf" multiple hidden onChange={onPick} />
+  </label>
+);
+
+/* ================= RESULT CARD ================= */
+const Result = ({ r }) => (
+  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex justify-between items-center">
+    <div>
+      <p className="font-bold">{r.name}</p>
+      <p className="text-xs text-slate-400">
+        {r.before} MB → {r.after} MB
       </p>
     </div>
-  );
-}
-
-/* ================= CRUSH DEV UI (ONLY FOR YOU) ================= */
-function CrushDevPanel() {
-  return (
-    <div className="bg-slate-900 border border-slate-800 rounded-[3rem] p-12">
-      <h2 className="text-xl font-black mb-4 uppercase tracking-widest">
-        CRUSH · DEV MODE
-      </h2>
-      <p className="text-slate-400 text-sm mb-6">
-        You are in admin mode. Build and test compression logic here.
-      </p>
-
-      <div className="border border-dashed border-slate-700 rounded-2xl p-10 text-center">
-        <p className="text-slate-500 text-sm">
-          🔧 Compression engine UI goes here
-        </p>
-      </div>
-    </div>
-  );
-}
-
-/* ================= PLACEHOLDER FOR OTHER FEATURES ================= */
-function NormalFeature({ name }) {
-  return (
-    <div className="bg-slate-900 border border-slate-800 rounded-[3rem] p-20 text-center">
-      <h2 className="text-2xl font-black mb-2 italic uppercase">{name}</h2>
-      <p className="text-slate-400 text-sm">
-        Feature UI is active and ready.
-      </p>
-    </div>
-  );
-}
+    <a href={r.url} download={r.name}
+       className="bg-indigo-600 px-5 py-3 rounded-xl font-bold">
+      Download
+    </a>
+  </div>
+);
 
 /* ================= MAIN APP ================= */
 function App() {
-  const [activeTab, setActiveTab] = useState("optimize");
-  const [adminMode, setAdminMode] = useState(false);
+  const [tab, setTab] = useState("optimize");
+  const [admin, setAdmin] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
-  const [password, setPassword] = useState("");
+  const [pass, setPass] = useState("");
+  const [files, setFiles] = useState([]);
+  const [results, setResults] = useState([]);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     if (window.lucide) window.lucide.createIcons();
-  }, [activeTab, adminMode]);
+  }, [tab, results, admin]);
 
-  const unlockAdmin = () => {
-    if (password === ADMIN_PASSWORD) {
-      setAdminMode(true);
+  const pickFiles = e =>
+    setFiles([...e.target.files].filter(f => f.type === "application/pdf"));
+
+  const unlock = () => {
+    if (pass === ADMIN_PASSWORD) {
+      setAdmin(true);
       setShowAdmin(false);
-      setPassword("");
-      alert("Admin mode unlocked 🔓");
-    } else {
-      alert("Wrong password ❌");
+      setPass("");
+      alert("Admin unlocked 🔓");
+    } else alert("Wrong password ❌");
+  };
+
+  const run = async () => {
+    if (!files.length) return alert("Add files first");
+    const { PDFDocument, degrees, rgb, StandardFonts } = getLib();
+    let out = [];
+
+    for (const f of files) {
+      const buf = await f.arrayBuffer();
+      const pdf = await PDFDocument.load(buf, tab === "unlock" ? { ignoreEncryption:true } : {});
+      
+      if (tab === "rotate") {
+        pdf.getPages().forEach(p => p.setRotation(degrees(90)));
+      }
+
+      if (tab === "watermark") {
+        const font = await pdf.embedFont(StandardFonts.HelveticaBold);
+        pdf.getPages().forEach(p => {
+          const { width, height } = p.getSize();
+          p.drawText("DRAFT", {
+            x: width/4, y: height/2, size:50,
+            rotate: degrees(45), opacity:0.3,
+            color: rgb(0.6,0.6,0.6), font
+          });
+        });
+      }
+
+      const bytes = await pdf.save({ useObjectStreams:true });
+      out.push({
+        name: f.name,
+        before: (f.size/1024/1024).toFixed(2),
+        after: (bytes.length/1024/1024).toFixed(2),
+        url: URL.createObjectURL(new Blob([bytes],{type:"application/pdf"}))
+      });
     }
+    setResults(out);
   };
 
   return (
     <div className="max-w-6xl mx-auto px-6 pb-20 text-white">
-
       {/* HEADER */}
       <div className="mt-10 mb-6 flex justify-between items-end">
         <div>
-          <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-black bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
             PDF SQUEEZE PRO
           </h1>
-          <p className="text-xs text-slate-400 tracking-widest uppercase mt-2">
+          <p className="text-xs text-slate-400 uppercase tracking-widest mt-2">
             Local · Secure · Private
           </p>
         </div>
-
         <button
           onClick={() => setShowAdmin(true)}
           className="text-xs text-slate-500 hover:text-slate-300 uppercase tracking-widest"
@@ -152,65 +194,64 @@ function App() {
           ["rotate","rotate-cw","Rotate"],
           ["watermark","type","Stamp"],
           ["unlock","unlock","Unlock"]
-        ].map(([id,icon,label]) => (
-          <button
-            key={id}
-            onClick={() => setActiveTab(id)}
+        ].map(([id,icon,label])=>(
+          <button key={id}
+            onClick={()=>setTab(id)}
             className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center gap-2
-              ${activeTab===id ? "bg-indigo-600" : "text-slate-400 hover:text-white"}`}
-          >
-            <i data-lucide={icon}></i>
-            {label}
+              ${tab===id?"bg-indigo-600":"text-slate-400 hover:text-white"}`}>
+            <i data-lucide={icon}></i>{label}
           </button>
         ))}
       </div>
 
       {/* CONTENT */}
-      {activeTab === "optimize" ? (
-        adminMode ? <CrushDevPanel /> : <UnderDevelopment title="Crush" />
+      {tab === "optimize" ? (
+        admin ? <CrushDev /> : <UnderDevelopment title="Crush" />
       ) : (
-        <NormalFeature name={activeTab} />
+        <>
+          <FilePicker onPick={pickFiles} />
+          <button onClick={run}
+            className="mt-6 w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-2xl font-black">
+            RUN {tab.toUpperCase()}
+          </button>
+          <div className="mt-10 space-y-4">
+            {results.map((r,i)=><Result key={i} r={r} />)}
+          </div>
+        </>
       )}
 
       {/* ADMIN MODAL */}
       {showAdmin && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm">
-            <h2 className="font-black mb-4 uppercase tracking-widest text-sm">
+            <h2 className="font-black uppercase tracking-widest text-sm mb-4">
               Admin Access
             </h2>
             <input
               type="password"
+              value={pass}
+              onChange={e=>setPass(e.target.value)}
               placeholder="Enter password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white mb-4 outline-none"
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white mb-4"
             />
             <div className="flex gap-2">
-              <button
-                onClick={unlockAdmin}
-                className="flex-1 bg-indigo-600 py-3 rounded-xl font-black"
-              >
+              <button onClick={unlock}
+                className="flex-1 bg-indigo-600 py-3 rounded-xl font-black">
                 Unlock
               </button>
-              <button
-                onClick={() => setShowAdmin(false)}
-                className="flex-1 bg-slate-800 py-3 rounded-xl font-black"
-              >
+              <button onClick={()=>setShowAdmin(false)}
+                className="flex-1 bg-slate-800 py-3 rounded-xl font-black">
                 Cancel
               </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
 
-/* ================= MOUNT ================= */
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<App />);
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
 
 </body>

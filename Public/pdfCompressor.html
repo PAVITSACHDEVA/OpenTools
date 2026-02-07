@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF Compressor | DocFix</title>
+
+  <!-- Base site styles -->
+  <link rel="stylesheet" href="Style.css" />
+
+  <!-- React + Babel (GitHub Pages safe) -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Icons -->
+  <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+
+  <!-- PDF Lib -->
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+
+  <style>
+    body {
+      background: #020617;
+      font-family: Inter, system-ui, sans-serif;
+    }
+  </style>
+</head>
+
+<body>
+
+<header class="docfix-header">
+  <a href="index.html" class="logo">DocFix</a>
+  <nav>
+    <a href="pdfCompressor.html">PDF</a>
+    <a href="Converter.html">Images</a>
+    <a href="Genartor.html">Generator</a>
+  </nav>
+</header>
+
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+/* ---------- MAIN APP ---------- */
+function App() {
+  const [activeTab, setActiveTab] = useState("optimize");
+  const [files, setFiles] = useState([]);
+  const [results, setResults] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    if (window.lucide) window.lucide.createIcons();
+  }, [activeTab, files, results]);
+
+  const handleFiles = (e) => {
+    const selected = Array.from(e.target.files).filter(f => f.type === "application/pdf");
+    setFiles(selected);
+  };
+
+  const processPDFs = async () => {
+    if (!files.length) return alert("Add PDF files first");
+    setIsProcessing(true);
+
+    const { PDFDocument, degrees, rgb, StandardFonts } = window.PDFLib;
+    let output = [];
+
+    for (const file of files) {
+      const bytes = await file.arrayBuffer();
+      const pdf = await PDFDocument.load(bytes, activeTab === "unlock" ? { ignoreEncryption: true } : {});
+
+      if (activeTab === "rotate") {
+        pdf.getPages().forEach(p => p.setRotation(degrees(90)));
+      }
+
+      if (activeTab === "watermark") {
+        const font = await pdf.embedFont(StandardFonts.HelveticaBold);
+        pdf.getPages().forEach(page => {
+          const { width, height } = page.getSize();
+          page.drawText("DRAFT", {
+            x: width / 4,
+            y: height / 2,
+            size: 50,
+            rotate: degrees(45),
+            opacity: 0.3,
+            color: rgb(0.6, 0.6, 0.6),
+            font
+          });
+        });
+      }
+
+      if (activeTab === "optimize") {
+        pdf.setTitle("");
+        pdf.setAuthor("");
+        pdf.setProducer("PDF Squeeze Pro");
+      }
+
+      const outBytes = await pdf.save({ useObjectStreams: true });
+      output.push({
+        name: file.name,
+        url: URL.createObjectURL(new Blob([outBytes], { type: "application/pdf" })),
+        before: (file.size / 1024 / 1024).toFixed(2),
+        after: (outBytes.length / 1024 / 1024).toFixed(2)
+      });
+    }
+
+    setResults(output);
+    setIsProcessing(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-white p-6">
+      {/* HEADER */}
+      <h1 className="text-3xl font-black mb-6">PDF SQUEEZE PRO</h1>
+
+      {/* TABS */}
+      <div className="flex gap-2 mb-6">
+        {[
+          ["optimize","zap","Crush"],
+          ["merge","layers","Merge"],
+          ["rotate","rotate-cw","Rotate"],
+          ["watermark","type","Stamp"],
+          ["unlock","unlock","Unlock"]
+        ].map(([id,icon,label]) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2
+              ${activeTab === id ? "bg-indigo-600" : "bg-slate-800"}`}
+          >
+            <i data-lucide={icon}></i>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* FILE INPUT */}
+      <input
+        type="file"
+        accept=".pdf"
+        multiple
+        onChange={handleFiles}
+        className="mb-4"
+      />
+
+      {/* ACTION */}
+      <button
+        onClick={processPDFs}
+        disabled={isProcessing}
+        className="bg-emerald-600 px-6 py-3 rounded-xl font-black mb-6"
+      >
+        {isProcessing ? "PROCESSING..." : "RUN"}
+      </button>
+
+      {/* RESULTS */}
+      <div className="space-y-3">
+        {results.map((r,i) => (
+          <div key={i} className="bg-slate-900 p-4 rounded-xl flex justify-between items-center">
+            <div>
+              <p className="font-bold">{r.name}</p>
+              <p className="text-xs text-slate-400">
+                {r.before} MB → {r.after} MB
+              </p>
+            </div>
+            <a
+              href={r.url}
+              download={r.name}
+              className="bg-indigo-500 px-4 py-2 rounded-lg font-bold"
+            >
+              Download
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- MOUNT ---------- */
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+
+</body>
+</html>

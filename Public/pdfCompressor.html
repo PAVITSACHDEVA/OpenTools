@@ -43,10 +43,11 @@
 
 <div id="root"></div>
 
-<script type="text/babel">
+<!-- <script type="text/babel">
   console.log("BABEL RUNNING");
 
-  export default function App() {
+ function App() {
+
   const [activeTab, setActiveTab] = useState('optimize');
   const [files, setFiles] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -531,6 +532,20 @@ function PDFSqueezePro() {
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(<App />);
 
+</script> -->
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+function App() {
+  return (
+    <div className="min-h-screen flex items-center justify-center text-white">
+      <h1 className="text-3xl font-black">PDF SQUEEZE PRO 🔥</h1>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
 </script>
 
 </body>

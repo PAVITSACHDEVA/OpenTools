@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>PDF Squeeze Pro</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<title>Lumix-Core | PDF Squeeze Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
 <!-- React -->
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -25,13 +25,39 @@ body { background:#020617; }
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState } = React;
+const { useState, useEffect } = React;
+const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
+
+/* ================= AUTH ================= */
+const ROLES = {
+  "1-D": "developer",
+  "1-A": "admin",
+  "1-T": "tester"
+};
 
 /* ================= LOGS ================= */
-const addLog = msg => {
+const logAction = msg => {
   const logs = JSON.parse(localStorage.getItem("logs") || "[]");
   logs.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
   localStorage.setItem("logs", JSON.stringify(logs));
+};
+
+/* ================= PAGE RANGE PARSER ================= */
+const parsePages = (range, total) => {
+  if (range === "all") return [...Array(total).keys()];
+  if (range === "first") return [0];
+  if (range === "last") return [total - 1];
+
+  const pages = new Set();
+  range.split(",").forEach(part => {
+    if (part.includes("-")) {
+      let [a,b] = part.split("-").map(n=>parseInt(n)-1);
+      for (let i=a;i<=b;i++) pages.add(i);
+    } else {
+      pages.add(parseInt(part)-1);
+    }
+  });
+  return [...pages].filter(p=>p>=0 && p<total);
 };
 
 /* ================= APP ================= */
@@ -39,47 +65,60 @@ function App() {
   const [tab, setTab] = useState("merge");
   const [files, setFiles] = useState([]);
   const [results, setResults] = useState([]);
-  const [progress, setProgress] = useState({});
   const [logs] = useState(JSON.parse(localStorage.getItem("logs") || "[]"));
+  const [role, setRole] = useState(null);
+
+  const login = () => {
+    const p = prompt("Enter password");
+    if (ROLES[p]) {
+      setRole(ROLES[p]);
+      logAction(`Logged in as ${ROLES[p]}`);
+    } else alert("Wrong password");
+  };
 
   const onDrop = e => {
     e.preventDefault();
-    const pdfs = [...e.dataTransfer.files].filter(f => f.type === "application/pdf");
+    const pdfs = [...e.dataTransfer.files].filter(f=>f.type==="application/pdf");
     setFiles(pdfs);
-    addLog(`${pdfs.length} PDF(s) added`);
+    logAction(`${pdfs.length} PDFs added`);
   };
 
   return (
     <div className="max-w-6xl mx-auto p-8 text-white">
-      <h1 className="text-4xl font-black mb-6 bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-        PDF SQUEEZE PRO
-      </h1>
+
+      {/* HEADER */}
+      <div className="flex justify-between mb-6">
+        <h1 className="text-4xl font-black bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+          LUMIX-CORE · PDF SQUEEZE
+        </h1>
+        <button onClick={login} className="text-xs tracking-widest">
+          {role ? role.toUpperCase() : "ADMIN"}
+        </button>
+      </div>
 
       {/* TABS */}
       <div className="flex gap-2 mb-6">
-        {["merge","rotate","stamp","unlock","crush"].map(t => (
+        {["merge","rotate","stamp","unlock","crush"].map(t=>(
           <button key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-xl uppercase text-xs font-black
-              ${tab===t?"bg-indigo-600":"bg-slate-800 text-slate-400"}`}>
+            onClick={()=>setTab(t)}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase
+            ${tab===t?"bg-indigo-600":"bg-slate-800 text-slate-400"}`}>
             {t}
           </button>
         ))}
       </div>
 
-      {/* DROP ZONE */}
-      <div
-        onDragOver={e=>e.preventDefault()}
-        onDrop={onDrop}
+      {/* DROPZONE */}
+      <div onDragOver={e=>e.preventDefault()} onDrop={onDrop}
         className="border-2 border-dashed border-slate-700 rounded-3xl p-10 text-center mb-6">
-        Drag & Drop PDFs Here
+        Drag & drop PDFs here
       </div>
 
       {/* TOOLS */}
       {tab==="merge" && <MergeTool files={files} setResults={setResults} />}
-      {tab==="rotate" && <RotateTool files={files} setResults={setResults} setProgress={setProgress} />}
-      {tab==="stamp" && <StampTool files={files} setResults={setResults} setProgress={setProgress} />}
-      {tab==="unlock" && <UnlockTool files={files} setResults={setResults} setProgress={setProgress} />}
+      {tab==="rotate" && <RotateTool files={files} setResults={setResults} />}
+      {tab==="stamp" && <StampTool files={files} setResults={setResults} />}
+      {tab==="unlock" && <UnlockTool files={files} setResults={setResults} />}
       {tab==="crush" && (
         <div className="bg-slate-900 rounded-3xl p-12 text-center">
           <h2 className="text-2xl font-black">CRUSH</h2>
@@ -88,10 +127,9 @@ function App() {
       )}
 
       {/* RESULTS */}
-      {results.length > 0 && (
-        <div className="mt-10 space-y-3">
-          <h3 className="text-xs uppercase tracking-widest text-emerald-400">Downloads</h3>
-          {results.map(r => (
+      {results.length>0 && (
+        <div className="mt-8 space-y-3">
+          {results.map(r=>(
             <a key={r.name} href={r.url} download={r.name}
               className="block bg-emerald-600 text-slate-950 px-6 py-3 rounded-xl font-black">
               Download {r.name}
@@ -101,107 +139,128 @@ function App() {
       )}
 
       {/* LOGS */}
-      <div className="mt-12 bg-slate-900 rounded-3xl p-6">
+      <div className="mt-10 bg-slate-900 rounded-3xl p-6">
         <h3 className="text-xs uppercase tracking-widest mb-3">Logs</h3>
-        <div className="text-xs space-y-1 max-h-40 overflow-auto">
+        <div className="text-xs max-h-40 overflow-auto space-y-1">
           {logs.map((l,i)=><div key={i}>{l}</div>)}
         </div>
       </div>
+
     </div>
   );
 }
 
 /* ================= MERGE ================= */
 function MergeTool({ files, setResults }) {
-  const [name, setName] = useState("merged.pdf");
-
   const run = async () => {
-    const { PDFDocument } = PDFLib;
     const merged = await PDFDocument.create();
-
     for (const f of files) {
       const pdf = await PDFDocument.load(await f.arrayBuffer());
       const pages = await merged.copyPages(pdf, pdf.getPageIndices());
-      pages.forEach(p => merged.addPage(p));
+      pages.forEach(p=>merged.addPage(p));
     }
-
     const bytes = await merged.save();
-    setResults([{ name, url: URL.createObjectURL(new Blob([bytes],{type:"application/pdf"})) }]);
-    addLog("Merged PDFs");
+    setResults([{ name:"merged.pdf", url:URL.createObjectURL(new Blob([bytes],{type:"application/pdf"})) }]);
+    logAction("Merged PDFs");
   };
-
-  return (
-    <div className="bg-slate-900 rounded-3xl p-10 space-y-4">
-      <input value={name} onChange={e=>setName(e.target.value)}
-        className="bg-slate-800 p-3 rounded-xl w-full" />
-      <button onClick={run} className="bg-indigo-600 px-6 py-3 rounded-xl font-black">MERGE</button>
-    </div>
-  );
+  return <button onClick={run} className="bg-indigo-600 px-6 py-3 rounded-xl font-black">MERGE</button>;
 }
 
 /* ================= ROTATE ================= */
 function RotateTool({ files, setResults }) {
   const [angle, setAngle] = useState(90);
+  const [pages, setPages] = useState("all");
 
   const run = async () => {
-    const out = [];
-    const { PDFDocument, degrees } = PDFLib;
-
+    const out=[];
     for (const f of files) {
       const pdf = await PDFDocument.load(await f.arrayBuffer());
-      pdf.getPages().forEach(p => p.setRotation(degrees(angle)));
+      const targets = parsePages(pages, pdf.getPageCount());
+      targets.forEach(i=>pdf.getPage(i).setRotation(degrees(angle)));
       const bytes = await pdf.save();
       out.push({ name:`rotated_${f.name}`, url:URL.createObjectURL(new Blob([bytes],{type:"application/pdf"})) });
     }
     setResults(out);
-    addLog("Rotated PDFs");
+    logAction("Rotated PDFs");
   };
 
   return (
-    <div className="bg-slate-900 rounded-3xl p-10 space-y-4">
-      <select value={angle} onChange={e=>setAngle(+e.target.value)}
-        className="bg-slate-800 p-3 rounded-xl">
+    <div className="space-y-4">
+      <select value={angle} onChange={e=>setAngle(+e.target.value)} className="bg-slate-800 p-3 rounded-xl">
         <option value={90}>90°</option>
         <option value={180}>180°</option>
         <option value={270}>270°</option>
       </select>
+      <input value={pages} onChange={e=>setPages(e.target.value)}
+        placeholder="all | first | last | 1,3,5 | 2-6"
+        className="bg-slate-800 p-3 rounded-xl w-full"/>
       <button onClick={run} className="bg-indigo-600 px-6 py-3 rounded-xl font-black">ROTATE</button>
     </div>
   );
 }
 
-/* ================= STAMP ================= */
+/* ================= STAMP (TEXT + IMAGE) ================= */
 function StampTool({ files, setResults }) {
-  const [text, setText] = useState("DRAFT");
+  const [text, setText] = useState("CONFIDENTIAL");
   const [size, setSize] = useState(40);
   const [opacity, setOpacity] = useState(0.3);
+  const [angle, setAngle] = useState(45);
+  const [pages, setPages] = useState("all");
+  const [img, setImg] = useState(null);
 
   const run = async () => {
-    const out = [];
-    const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
-
+    const out=[];
     for (const f of files) {
       const pdf = await PDFDocument.load(await f.arrayBuffer());
       const font = await pdf.embedFont(StandardFonts.HelveticaBold);
-      pdf.getPages().forEach(p => {
+      const targets = parsePages(pages, pdf.getPageCount());
+
+      let embeddedImg=null;
+      if (img) {
+        const buf = await img.arrayBuffer();
+        embeddedImg = img.type.includes("png")
+          ? await pdf.embedPng(buf)
+          : await pdf.embedJpg(buf);
+      }
+
+      targets.forEach(i=>{
+        const p = pdf.getPage(i);
         const { width, height } = p.getSize();
+        if (embeddedImg) {
+          p.drawImage(embeddedImg,{
+            x: width/4,
+            y: height/4,
+            width: embeddedImg.width/2,
+            height: embeddedImg.height/2,
+            opacity,
+            rotate:degrees(angle)
+          });
+        }
         p.drawText(text,{
-          x: width/4, y: height/2,
-          size, rotate:degrees(45),
-          opacity, color:rgb(0.6,0.6,0.6), font
+          x: width/4,
+          y: height/2,
+          size,
+          rotate:degrees(angle),
+          opacity,
+          color:rgb(0.6,0.6,0.6),
+          font
         });
       });
+
       const bytes = await pdf.save();
       out.push({ name:`stamped_${f.name}`, url:URL.createObjectURL(new Blob([bytes],{type:"application/pdf"})) });
     }
     setResults(out);
-    addLog("Stamped PDFs");
+    logAction("Stamped PDFs");
   };
 
   return (
-    <div className="bg-slate-900 rounded-3xl p-10 space-y-4">
-      <input value={text} onChange={e=>setText(e.target.value)}
-        className="bg-slate-800 p-3 rounded-xl w-full" />
+    <div className="space-y-3">
+      <input value={text} onChange={e=>setText(e.target.value)} className="bg-slate-800 p-3 rounded-xl w-full"/>
+      <input type="file" accept="image/png,image/jpeg" onChange={e=>setImg(e.target.files[0])}/>
+      <input value={pages} onChange={e=>setPages(e.target.value)}
+        placeholder="all | first | last | 1,3,5 | 2-6"
+        className="bg-slate-800 p-3 rounded-xl w-full"/>
       <button onClick={run} className="bg-indigo-600 px-6 py-3 rounded-xl font-black">STAMP</button>
     </div>
   );
@@ -210,23 +269,16 @@ function StampTool({ files, setResults }) {
 /* ================= UNLOCK ================= */
 function UnlockTool({ files, setResults }) {
   const run = async () => {
-    const out = [];
-    const { PDFDocument } = PDFLib;
-
+    const out=[];
     for (const f of files) {
       const pdf = await PDFDocument.load(await f.arrayBuffer(),{ignoreEncryption:true});
       const bytes = await pdf.save();
       out.push({ name:`unlocked_${f.name}`, url:URL.createObjectURL(new Blob([bytes],{type:"application/pdf"})) });
     }
     setResults(out);
-    addLog("Unlocked PDFs");
+    logAction("Unlocked PDFs");
   };
-
-  return (
-    <div className="bg-slate-900 rounded-3xl p-10">
-      <button onClick={run} className="bg-indigo-600 px-6 py-3 rounded-xl font-black">UNLOCK</button>
-    </div>
-  );
+  return <button onClick={run} className="bg-indigo-600 px-6 py-3 rounded-xl font-black">UNLOCK</button>;
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App />);

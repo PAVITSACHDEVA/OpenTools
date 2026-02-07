@@ -1,211 +1,122 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const generateBtn = document.getElementById("generateBtn");
-  const progress = document.querySelector(".progress");
-  const progressBar = document.querySelector(".progress-bar");
-  const editor = document.getElementById("editor");
-  const previewCanvas = document.getElementById("previewCanvas");
-  const ctx = previewCanvas.getContext("2d");
-  const imagePlaceholder = document.getElementById("image-placeholder");
-  const filterInputs = document.querySelectorAll("#filterControls input");
-  const resetFiltersBtn = document.getElementById("resetFilters");
-  const downloadBtn = document.getElementById("downloadBtn");
-  const filenameInput = document.getElementById("filename");
-  const formatSelect = document.getElementById("format");
-  const qualityGroup = document.getElementById("qualityGroup");
-  const qualitySlider = document.getElementById("quality");
-  const langBtn = document.getElementById("langToggle");
+document.addEventListener("DOMContentLoaded",()=>{
 
-  let isHindi = false;
-  let originalImage = null;
+/* LOADER */
+let width=0;
+const fill=document.getElementById("loaderFill");
+const loading=document.getElementById("loading");
 
-  const baseCanvas = document.createElement("canvas");
-  const baseCtx = baseCanvas.getContext("2d");
-
-  const defaults = {
-    grayscale: 0,
-    sepia: 0,
-    contrast: 100,
-    brightness: 100,
-    blur: 0,
-    invert: 0,
-  };
-
-  let current = { ...defaults };
-
-  function simulateProgress() {
-    progress.style.display = "block";
-    progressBar.style.width = "0%";
-    let w = 0;
-    return new Promise((r) => {
-      const i = setInterval(() => {
-        w += Math.random() * 20;
-        progressBar.style.width = Math.min(w, 100) + "%";
-        if (w >= 100) {
-          clearInterval(i);
-          progress.style.display = "none";
-          r();
-        }
-      }, 80);
-    });
+const loader=setInterval(()=>{
+  width+=2;
+  fill.style.width=width+"%";
+  if(width>=100){
+    clearInterval(loader);
+    loading.style.display="none";
   }
+},40);
 
-  generateBtn.onclick = async () => {
-    generateBtn.disabled = true;
-    generateBtn.innerText = isHindi ? "इमेज बन रही है..." : "Generating...";
-    await simulateProgress();
+/* GENERATOR */
 
-    const seed = Math.floor(Math.random() * 99999);
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = `https://picsum.photos/seed/${seed}/1200/800`;
+const generateBtn=document.getElementById("generateBtn");
+const progress=document.querySelector(".progress");
+const bar=document.querySelector(".progress-bar");
+const editor=document.getElementById("editor");
+const canvas=document.getElementById("previewCanvas");
+const ctx=canvas.getContext("2d");
+const placeholder=document.getElementById("image-placeholder");
 
-    img.onload = () => {
-      baseCanvas.width = previewCanvas.width = img.width;
-      baseCanvas.height = previewCanvas.height = img.height;
-      baseCtx.drawImage(img, 0, 0);
-      originalImage = img;
+const inputs=document.querySelectorAll("input[type=range]");
+const resetBtn=document.getElementById("resetFilters");
+const downloadBtn=document.getElementById("downloadBtn");
 
-      editor.classList.remove("hidden");
-      imagePlaceholder.style.display = "none";
-      previewCanvas.style.display = "block";
+let baseCanvas=document.createElement("canvas");
+let baseCtx=baseCanvas.getContext("2d");
+let img=null;
 
-      resetFilters();
-      generateBtn.disabled = false;
-      generateBtn.innerText = isHindi ? "नई इमेज बनाएं" : "✨ Generate New Image";
-    };
-  };
+const defaults={
+grayscale:0,sepia:0,contrast:100,brightness:100,blur:0,invert:0
+};
 
-  function applyFilters() {
-    if (!originalImage) return;
-    let f = "";
-    for (const k in current) {
-      if (current[k] !== defaults[k]) {
-        f += `${k}(${current[k]}${document.getElementById(k).dataset.unit}) `;
-      }
-    }
-    ctx.filter = f;
-    ctx.drawImage(baseCanvas, 0, 0);
-  }
+let current={...defaults};
 
-  filterInputs.forEach((i) =>
-    i.addEventListener("input", (e) => {
-      current[e.target.id] = e.target.value;
-      applyFilters();
-    })
-  );
-
-  function resetFilters() {
-    current = { ...defaults };
-    filterInputs.forEach((i) => (i.value = defaults[i.id]));
-    applyFilters();
-  }
-
-  resetFiltersBtn.onclick = resetFilters;
-
-  formatSelect.onchange = () => {
-    qualityGroup.style.display =
-      formatSelect.value === "image/jpeg" ? "block" : "none";
-  };
-
-  downloadBtn.onclick = () => {
-    previewCanvas.toBlob((b) => {
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(b);
-      a.download = `${filenameInput.value}.${formatSelect.value.split("/")[1]}`;
-      a.click();
-    }, formatSelect.value, qualitySlider.value);
-  };
-
-  langBtn.onclick = () => {
-    isHindi = !isHindi;
-    langBtn.innerText = isHindi ? "English" : "हिन्दी";
-
-    document.getElementById("genTitle").innerText =
-      isHindi ? "📸 इमेज जनरेटर और एडिटर" : "📸 Image Generator & Editor";
-
-    document.getElementById("genDesc").innerText =
-      isHindi
-        ? "बटन दबाएं → स्लाइडर बदलें → इमेज डाउनलोड करें"
-        : "Click the button → adjust sliders → download image";
-
-    imagePlaceholder.innerText =
-      isHindi ? "शुरू करने के लिए इमेज बनाएं" : "Generate an image to begin editing.";
-
-    generateBtn.innerText =
-      isHindi ? "नई इमेज बनाएं" : "✨ Generate New Image";
-  };
+function simulate(){
+progress.style.display="block";
+bar.style.width="0%";
+let w=0;
+return new Promise(r=>{
+const i=setInterval(()=>{
+w+=10;
+bar.style.width=w+"%";
+if(w>=100){clearInterval(i);progress.style.display="none";r();}
+},80);
 });
-document.addEventListener("DOMContentLoaded", () => {
+}
 
-  const $ = (id) => document.getElementById(id);
+generateBtn.onclick=async()=>{
+generateBtn.disabled=true;
+await simulate();
 
-  let isHindi = false;
+const seed=Math.floor(Math.random()*99999);
+img=new Image();
+img.crossOrigin="anonymous";
+img.src=`https://picsum.photos/seed/${seed}/1200/800`;
 
-  const texts = {
-    en: {
-      title: "📸 Image Generator",
-      desc: "Click the button → move sliders → download image",
-      helper: "Works on slow internet • No login needed",
-      generate: "✨ Generate New Image",
-      controls: "Controls",
-      effects: "Image Effects",
-      bw: "Black & White",
-      sepia: "Sepia",
-      contrast: "Contrast",
-      brightness: "Brightness",
-      blur: "Blur",
-      invert: "Invert",
-      reset: "Reset",
-      download: "Download",
-      downloadBtn: "Download Image",
-      placeholder: "Generate an image to begin editing."
-    },
-    hi: {
-      title: "📸 इमेज जनरेटर",
-      desc: "बटन दबाएं → स्लाइडर बदलें → इमेज डाउनलोड करें",
-      helper: "धीमे इंटरनेट पर भी काम करता है • लॉगिन की ज़रूरत नहीं",
-      generate: "✨ नई इमेज बनाएं",
-      controls: "नियंत्रण",
-      effects: "इमेज इफ़ेक्ट",
-      bw: "ब्लैक एंड व्हाइट",
-      sepia: "सेपिया",
-      contrast: "कॉन्ट्रास्ट",
-      brightness: "चमक",
-      blur: "ब्लर",
-      invert: "रंग उल्टा",
-      reset: "रीसेट",
-      download: "डाउनलोड",
-      downloadBtn: "इमेज डाउनलोड करें",
-      placeholder: "शुरू करने के लिए इमेज बनाएं"
-    }
-  };
+img.onload=()=>{
+baseCanvas.width=canvas.width=img.width;
+baseCanvas.height=canvas.height=img.height;
+baseCtx.drawImage(img,0,0);
 
-  function applyLang() {
-    const t = isHindi ? texts.hi : texts.en;
+editor.classList.remove("hidden");
+placeholder.style.display="none";
+canvas.style.display="block";
 
-    $("genTitle").innerText = t.title;
-    $("genDesc").innerText = t.desc;
-    $("helperText").innerText = t.helper;
-    $("generateBtn").innerText = t.generate;
-    $("controlsTitle").innerText = t.controls;
-    $("effectsTitle").innerText = t.effects;
-    $("lblBW").innerText = t.bw;
-    $("lblSepia").innerText = t.sepia;
-    $("lblContrast").innerText = t.contrast;
-    $("lblBrightness").innerText = t.brightness;
-    $("lblBlur").innerText = t.blur;
-    $("lblInvert").innerText = t.invert;
-    $("resetFilters").innerText = t.reset;
-    $("downloadTitle").innerText = t.download;
-    $("downloadBtn").innerText = t.downloadBtn;
-    $("image-placeholder").innerText = t.placeholder;
-    $("langToggle").innerText = isHindi ? "English" : "हिन्दी";
-  }
+resetFilters();
+generateBtn.disabled=false;
+};
+};
 
-  $("langToggle").onclick = () => {
-    isHindi = !isHindi;
-    applyLang();
-  };
+function apply(){
+if(!img) return;
+let f="";
+for(let k in current){
+if(current[k]!=defaults[k]){
+f+=`${k}(${current[k]}${document.getElementById(k).dataset.unit}) `;
+}}
+ctx.filter=f;
+ctx.drawImage(baseCanvas,0,0);
+}
 
-  applyLang(); // default
+inputs.forEach(i=>{
+i.oninput=e=>{
+current[e.target.id]=e.target.value;
+apply();
+};
+});
+
+function resetFilters(){
+current={...defaults};
+inputs.forEach(i=>i.value=defaults[i.id]);
+apply();
+}
+resetBtn.onclick=resetFilters;
+
+downloadBtn.onclick=()=>{
+canvas.toBlob(b=>{
+const a=document.createElement("a");
+a.href=URL.createObjectURL(b);
+a.download="image.png";
+a.click();
+},"image/png");
+};
+
+/* LANGUAGE TOGGLE */
+
+let isHindi=false;
+document.getElementById("langToggle").onclick=()=>{
+isHindi=!isHindi;
+document.getElementById("genTitle").innerText=isHindi?"📸 इमेज जनरेटर":"📸 Image Generator";
+document.getElementById("genDesc").innerText=isHindi?
+"बटन दबाएं → स्लाइडर बदलें → इमेज डाउनलोड करें":
+"Click the button → adjust sliders → download image";
+};
+
 });

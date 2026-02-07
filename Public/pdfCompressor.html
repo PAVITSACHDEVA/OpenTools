@@ -43,6 +43,31 @@
 
 <div id="root"></div>
 <script type="text/babel">
+  const COMPRESSION_PRESETS = {
+  light: {
+    label: "Light",
+    saveOpts: {
+      useObjectStreams: false,
+      updateFieldAppearances: false
+    }
+  },
+  balanced: {
+    label: "Balanced",
+    saveOpts: {
+      useObjectStreams: true,
+      updateFieldAppearances: false
+    }
+  },
+  aggressive: {
+    label: "Aggressive",
+    saveOpts: {
+      useObjectStreams: true,
+      addDefaultPage: false,
+      updateFieldAppearances: false
+    }
+  }
+};
+
 const { useState, useEffect, useRef } = React;
 
 /* ================= CONFIG ================= */
@@ -67,16 +92,95 @@ const UnderDevelopment = ({ title }) => (
 );
 
 /* ================= CRUSH DEV ================= */
-const CrushDev = () => (
-  <div className="bg-slate-900 border border-slate-800 rounded-[3rem] p-12">
-    <h2 className="text-xl font-black uppercase tracking-widest mb-4">
-      CRUSH · ADMIN MODE
-    </h2>
-    <p className="text-slate-400 text-sm">
-      Plug your compression logic here safely.
-    </p>
-  </div>
-);
+function CrushDev() {
+  const [files, setFiles] = React.useState([]);
+  const [preset, setPreset] = React.useState("balanced");
+  const [results, setResults] = React.useState([]);
+
+  const runCrush = async () => {
+    if (!files.length) return alert("Add PDFs first");
+    const { PDFDocument } = PDFLib;
+    const outputs = [];
+
+    for (const f of files) {
+      const bytes = await f.arrayBuffer();
+      const pdf = await PDFDocument.load(bytes);
+
+      // strip metadata
+      pdf.setTitle("");
+      pdf.setAuthor("");
+      pdf.setSubject("");
+      pdf.setProducer("PDF Squeeze Pro");
+
+      const out = await pdf.save(
+        COMPRESSION_PRESETS[preset].saveOpts
+      );
+
+      outputs.push({
+        name: f.name,
+        before: (f.size / 1024 / 1024).toFixed(2),
+        after: (out.length / 1024 / 1024).toFixed(2),
+        url: URL.createObjectURL(
+          new Blob([out], { type: "application/pdf" })
+        )
+      });
+    }
+    setResults(outputs);
+  };
+
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-[3rem] p-12">
+      <h2 className="text-xl font-black uppercase mb-6">
+        CRUSH · ADMIN MODE
+      </h2>
+
+      {/* Preset selector */}
+      <select
+        value={preset}
+        onChange={e => setPreset(e.target.value)}
+        className="mb-4 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3"
+      >
+        {Object.entries(COMPRESSION_PRESETS).map(([k, v]) => (
+          <option key={k} value={k}>{v.label}</option>
+        ))}
+      </select>
+
+      {/* File input */}
+      <input
+        type="file"
+        multiple
+        accept=".pdf"
+        onChange={e => setFiles([...e.target.files])}
+        className="mb-6 block"
+      />
+
+      <button
+        onClick={runCrush}
+        className="bg-indigo-600 px-6 py-4 rounded-2xl font-black"
+      >
+        RUN CRUSH
+      </button>
+
+      {/* Results */}
+      {results.length > 0 && (
+        <div className="mt-6 space-y-3">
+          {results.map((r, i) => (
+            <div key={i} className="flex justify-between bg-slate-800 p-4 rounded-xl">
+              <span>{r.before} → {r.after} MB</span>
+              <a
+                href={r.url}
+                download={r.name}
+                className="text-indigo-400 font-bold"
+              >
+                Download
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ================= FILE PICKER ================= */
 const FilePicker = ({ onPick }) => (

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Lumix-Core | PDF Squeeze Pro</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Squeeze Pro - Hybrid Engine</title>
 
 <!-- React -->
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -13,275 +13,315 @@
 <!-- Tailwind -->
 <script src="https://cdn.tailwindcss.com"></script>
 
-<!-- PDF-LIB -->
+<!-- Lucide -->
+<script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+
+<!-- PDF Lib -->
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 
 <style>
-body { background:#020617; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #020617;
+  color: white;
+}
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
 </style>
 </head>
 
-<body>
+<body class="custom-scrollbar">
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
 
-/* ================= AUTH ================= */
-const ROLES = {
-  "1-D": "developer",
-  "1-A": "admin",
-  "1-T": "tester"
+/* ================= SERVER ================= */
+const SERVER_COMPRESS_ENDPOINT =
+  "https://lumix-core-5tl0.onrender.com/api/compress";
+
+const fetchWithTimeout = async (url, options = {}, timeout = 60000) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (e) {
+    clearTimeout(id);
+    throw new Error("Server Request Timed Out");
+  }
 };
 
-/* ================= LOGS ================= */
-const logAction = msg => {
-  const logs = JSON.parse(localStorage.getItem("logs") || "[]");
-  logs.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
-  localStorage.setItem("logs", JSON.stringify(logs));
-};
-
-/* ================= PAGE RANGE PARSER ================= */
-const parsePages = (range, total) => {
-  if (range === "all") return [...Array(total).keys()];
-  if (range === "first") return [0];
-  if (range === "last") return [total - 1];
-
-  const pages = new Set();
-  range.split(",").forEach(part => {
-    if (part.includes("-")) {
-      let [a,b] = part.split("-").map(n=>parseInt(n)-1);
-      for (let i=a;i<=b;i++) pages.add(i);
-    } else {
-      pages.add(parseInt(part)-1);
-    }
-  });
-  return [...pages].filter(p=>p>=0 && p<total);
+/* ================= ICON ================= */
+const Icon = ({ name, size = 16, className = "" }) => {
+  useEffect(() => {
+    if (window.lucide) window.lucide.createIcons();
+  }, [name]);
+  return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
 };
 
 /* ================= APP ================= */
-function App() {
-  const [tab, setTab] = useState("merge");
+function PDFSqueezePro() {
+  const [activeTab, setActiveTab] = useState("optimize");
   const [files, setFiles] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [statusText, setStatusText] = useState("");
   const [results, setResults] = useState([]);
-  const [logs] = useState(JSON.parse(localStorage.getItem("logs") || "[]"));
-  const [role, setRole] = useState(null);
+  const [history, setHistory] = useState([]);
 
-  const login = () => {
-    const p = prompt("Enter password");
-    if (ROLES[p]) {
-      setRole(ROLES[p]);
-      logAction(`Logged in as ${ROLES[p]}`);
-    } else alert("Wrong password");
-  };
+  const [prefix, setPrefix] = useState("squeezed_");
+  const [mergeName, setMergeName] = useState("combined_result.pdf");
+  const [wmText, setWmText] = useState("DRAFT COPY");
+  const [wmOpacity, setWmOpacity] = useState(0.4);
+  const [rotateAngle, setRotateAngle] = useState(90);
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaAuthor, setMetaAuthor] = useState("");
 
-  const onDrop = e => {
+  const fileInputRef = useRef(null);
+
+  /* ===== DRAG & DROP (FIXED) ===== */
+  const handleDragOver = (e) => {
     e.preventDefault();
-    const pdfs = [...e.dataTransfer.files].filter(f=>f.type==="application/pdf");
-    setFiles(pdfs);
-    logAction(`${pdfs.length} PDFs added`);
+    e.stopPropagation();
   };
 
-  return (
-    <div className="max-w-6xl mx-auto p-8 text-white">
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-      {/* HEADER */}
-      <div className="flex justify-between mb-6">
-        <h1 className="text-4xl font-black bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-          LUMIX-CORE · PDF SQUEEZE
-        </h1>
-        <button onClick={login} className="text-xs tracking-widest">
-          {role ? role.toUpperCase() : "ADMIN"}
-        </button>
-      </div>
+    const dropped = Array.from(e.dataTransfer.files)
+      .filter(f => f.type === "application/pdf");
 
-      {/* TABS */}
-      <div className="flex gap-2 mb-6">
-        {["merge","rotate","stamp","unlock","crush"].map(t=>(
-          <button key={t}
-            onClick={()=>setTab(t)}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase
-            ${tab===t?"bg-indigo-600":"bg-slate-800 text-slate-400"}`}>
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {/* DROPZONE */}
-      <div onDragOver={e=>e.preventDefault()} onDrop={onDrop}
-        className="border-2 border-dashed border-slate-700 rounded-3xl p-10 text-center mb-6">
-        Drag & drop PDFs here
-      </div>
-
-      {/* TOOLS */}
-      {tab==="merge" && <MergeTool files={files} setResults={setResults} />}
-      {tab==="rotate" && <RotateTool files={files} setResults={setResults} />}
-      {tab==="stamp" && <StampTool files={files} setResults={setResults} />}
-      {tab==="unlock" && <UnlockTool files={files} setResults={setResults} />}
-      {tab==="crush" && (
-        <div className="bg-slate-900 rounded-3xl p-12 text-center">
-          <h2 className="text-2xl font-black">CRUSH</h2>
-          <p className="text-slate-400">Under Development</p>
-        </div>
-      )}
-
-      {/* RESULTS */}
-      {results.length>0 && (
-        <div className="mt-8 space-y-3">
-          {results.map(r=>(
-            <a key={r.name} href={r.url} download={r.name}
-              className="block bg-emerald-600 text-slate-950 px-6 py-3 rounded-xl font-black">
-              Download {r.name}
-            </a>
-          ))}
-        </div>
-      )}
-
-      {/* LOGS */}
-      <div className="mt-10 bg-slate-900 rounded-3xl p-6">
-        <h3 className="text-xs uppercase tracking-widest mb-3">Logs</h3>
-        <div className="text-xs max-h-40 overflow-auto space-y-1">
-          {logs.map((l,i)=><div key={i}>{l}</div>)}
-        </div>
-      </div>
-
-    </div>
-  );
-}
-
-/* ================= MERGE ================= */
-function MergeTool({ files, setResults }) {
-  const run = async () => {
-    const merged = await PDFDocument.create();
-    for (const f of files) {
-      const pdf = await PDFDocument.load(await f.arrayBuffer());
-      const pages = await merged.copyPages(pdf, pdf.getPageIndices());
-      pages.forEach(p=>merged.addPage(p));
-    }
-    const bytes = await merged.save();
-    setResults([{ name:"merged.pdf", url:URL.createObjectURL(new Blob([bytes],{type:"application/pdf"})) }]);
-    logAction("Merged PDFs");
-  };
-  return <button onClick={run} className="bg-indigo-600 px-6 py-3 rounded-xl font-black">MERGE</button>;
-}
-
-/* ================= ROTATE ================= */
-function RotateTool({ files, setResults }) {
-  const [angle, setAngle] = useState(90);
-  const [pages, setPages] = useState("all");
-
-  const run = async () => {
-    const out=[];
-    for (const f of files) {
-      const pdf = await PDFDocument.load(await f.arrayBuffer());
-      const targets = parsePages(pages, pdf.getPageCount());
-      targets.forEach(i=>pdf.getPage(i).setRotation(degrees(angle)));
-      const bytes = await pdf.save();
-      out.push({ name:`rotated_${f.name}`, url:URL.createObjectURL(new Blob([bytes],{type:"application/pdf"})) });
-    }
-    setResults(out);
-    logAction("Rotated PDFs");
+    if (dropped.length === 0) return;
+    setFiles(prev => [...prev, ...dropped]);
   };
 
-  return (
-    <div className="space-y-4">
-      <select value={angle} onChange={e=>setAngle(+e.target.value)} className="bg-slate-800 p-3 rounded-xl">
-        <option value={90}>90°</option>
-        <option value={180}>180°</option>
-        <option value={270}>270°</option>
-      </select>
-      <input value={pages} onChange={e=>setPages(e.target.value)}
-        placeholder="all | first | last | 1,3,5 | 2-6"
-        className="bg-slate-800 p-3 rounded-xl w-full"/>
-      <button onClick={run} className="bg-indigo-600 px-6 py-3 rounded-xl font-black">ROTATE</button>
-    </div>
-  );
-}
+  /* ===== ENGINE ===== */
+  const processBatch = async () => {
+    if (files.length === 0) return;
+    setIsProcessing(true);
+    let processed = [];
 
-/* ================= STAMP (TEXT + IMAGE) ================= */
-function StampTool({ files, setResults }) {
-  const [text, setText] = useState("CONFIDENTIAL");
-  const [size, setSize] = useState(40);
-  const [opacity, setOpacity] = useState(0.3);
-  const [angle, setAngle] = useState(45);
-  const [pages, setPages] = useState("all");
-  const [img, setImg] = useState(null);
+    try {
+      if (activeTab === "merge") {
+        setStatusText("Merging documents...");
+        const merged = await PDFDocument.create();
 
-  const run = async () => {
-    const out=[];
-    for (const f of files) {
-      const pdf = await PDFDocument.load(await f.arrayBuffer());
-      const font = await pdf.embedFont(StandardFonts.HelveticaBold);
-      const targets = parsePages(pages, pdf.getPageCount());
+        for (const file of files) {
+          const pdf = await PDFDocument.load(await file.arrayBuffer());
+          const pages = await merged.copyPages(pdf, pdf.getPageIndices());
+          pages.forEach(p => merged.addPage(p));
+        }
 
-      let embeddedImg=null;
-      if (img) {
-        const buf = await img.arrayBuffer();
-        embeddedImg = img.type.includes("png")
-          ? await pdf.embedPng(buf)
-          : await pdf.embedJpg(buf);
+        processed.push(makeResult(
+          mergeName,
+          await merged.save(),
+          "MERGE",
+          files.reduce((a,b)=>a+b.size,0)
+        ));
+
+      } else if (activeTab === "optimize") {
+        for (const file of files) {
+          setStatusText(`Server compressing: ${file.name}`);
+          const fd = new FormData();
+          fd.append("file", file);
+          const res = await fetchWithTimeout(
+            SERVER_COMPRESS_ENDPOINT,
+            { method: "POST", body: fd }
+          );
+          if (!res.ok) throw new Error("Server compression failed");
+          const buf = await res.arrayBuffer();
+          processed.push(makeResult(
+            prefix + file.name,
+            new Uint8Array(buf),
+            "OPTIMIZE",
+            file.size
+          ));
+        }
+
+      } else {
+        for (const file of files) {
+          setStatusText(`Processing ${file.name}`);
+          const pdf = await PDFDocument.load(
+            await file.arrayBuffer(),
+            { ignoreEncryption: activeTab === "unlock" }
+          );
+
+          if (activeTab === "rotate") {
+            pdf.getPages().forEach(p =>
+              p.setRotation(degrees(parseInt(rotateAngle)))
+            );
+          }
+
+          if (activeTab === "watermark") {
+            const font = await pdf.embedFont(StandardFonts.HelveticaBold);
+            pdf.getPages().forEach(p => {
+              const { width, height } = p.getSize();
+              p.drawText(wmText, {
+                x: width / 4,
+                y: height / 2,
+                size: 50,
+                font,
+                rotate: degrees(45),
+                opacity: wmOpacity,
+                color: rgb(0.5, 0.5, 0.5)
+              });
+            });
+          }
+
+          if (activeTab === "metadata") {
+            pdf.setTitle(metaTitle || "Untitled");
+            pdf.setAuthor(metaAuthor || "User");
+          }
+
+          processed.push(makeResult(
+            file.name,
+            await pdf.save(),
+            activeTab.toUpperCase(),
+            file.size
+          ));
+        }
       }
 
-      targets.forEach(i=>{
-        const p = pdf.getPage(i);
-        const { width, height } = p.getSize();
-        if (embeddedImg) {
-          p.drawImage(embeddedImg,{
-            x: width/4,
-            y: height/4,
-            width: embeddedImg.width/2,
-            height: embeddedImg.height/2,
-            opacity,
-            rotate:degrees(angle)
-          });
-        }
-        p.drawText(text,{
-          x: width/4,
-          y: height/2,
-          size,
-          rotate:degrees(angle),
-          opacity,
-          color:rgb(0.6,0.6,0.6),
-          font
-        });
-      });
+      setResults(prev => [...processed, ...prev]);
+      setHistory(prev => [...processed, ...prev]);
 
-      const bytes = await pdf.save();
-      out.push({ name:`stamped_${f.name}`, url:URL.createObjectURL(new Blob([bytes],{type:"application/pdf"})) });
+    } catch (e) {
+      alert("Engine Error: " + e.message);
+    } finally {
+      setIsProcessing(false);
+      setFiles([]);
     }
-    setResults(out);
-    logAction("Stamped PDFs");
   };
 
+  const makeResult = (name, bytes, type, origSize) => {
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    return {
+      id: Math.random().toString(36).slice(2),
+      name: name.endsWith(".pdf") ? name : name + ".pdf",
+      url: URL.createObjectURL(blob),
+      newSize: (bytes.length / 1024 / 1024).toFixed(2),
+      saving: (100 - (bytes.length / origSize * 100)).toFixed(1),
+      type,
+      timestamp: new Date().toLocaleTimeString()
+    };
+  };
+
+  /* ===== UI ===== */
   return (
-    <div className="space-y-3">
-      <input value={text} onChange={e=>setText(e.target.value)} className="bg-slate-800 p-3 rounded-xl w-full"/>
-      <input type="file" accept="image/png,image/jpeg" onChange={e=>setImg(e.target.files[0])}/>
-      <input value={pages} onChange={e=>setPages(e.target.value)}
-        placeholder="all | first | last | 1,3,5 | 2-6"
-        className="bg-slate-800 p-3 rounded-xl w-full"/>
-      <button onClick={run} className="bg-indigo-600 px-6 py-3 rounded-xl font-black">STAMP</button>
+    <div className="min-h-screen p-6 max-w-6xl mx-auto">
+      <header className="mb-12 flex flex-col md:flex-row justify-between items-center gap-6">
+        <div>
+          <h1 className="text-4xl font-black italic uppercase">PDF SQUEEZE PRO</h1>
+          <p className="text-indigo-400 text-[10px] font-bold uppercase tracking-widest mt-2">
+            Hybrid Studio v3.0
+          </p>
+        </div>
+
+        <nav className="flex bg-slate-900 border border-slate-800 p-1 rounded-2xl overflow-x-auto">
+          {["optimize","merge","rotate","metadata","unlock","watermark"].map(t=>(
+            <button key={t}
+              onClick={()=>setActiveTab(t)}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${
+                activeTab===t ? "bg-indigo-600 text-white" : "text-slate-500"
+              }`}>
+              {t}
+            </button>
+          ))}
+        </nav>
+      </header>
+
+      <main className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-4">
+          <section className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] space-y-5">
+            {activeTab==="optimize" &&
+              <input value={prefix} onChange={e=>setPrefix(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs font-bold"
+                placeholder="Prefix" />}
+            {activeTab==="watermark" &&
+              <input value={wmText} onChange={e=>setWmText(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs font-bold"
+                placeholder="Stamp text" />}
+            {activeTab==="rotate" &&
+              <select value={rotateAngle} onChange={e=>setRotateAngle(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs font-bold">
+                <option value="90">90°</option>
+                <option value="180">180°</option>
+                <option value="270">270°</option>
+              </select>}
+            <button
+              onClick={processBatch}
+              disabled={files.length===0 || isProcessing}
+              className="w-full bg-indigo-600 p-5 rounded-2xl font-black text-xs uppercase">
+              Run Engine
+            </button>
+          </section>
+        </div>
+
+        <div className="lg:col-span-8 space-y-6">
+          <div
+            onClick={()=>fileInputRef.current.click()}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            className="border-2 border-dashed border-slate-800 p-20 rounded-[3rem] text-center hover:bg-indigo-500/5 cursor-pointer"
+          >
+            <input
+              type="file"
+              multiple
+              accept="application/pdf"
+              hidden
+              ref={fileInputRef}
+              onChange={e=>setFiles(prev=>[...prev, ...Array.from(e.target.files)])}
+            />
+            <Icon name="upload-cloud" size={32} className="mx-auto mb-4 text-slate-700" />
+            <p className="text-slate-500 font-bold uppercase text-[10px]">
+              Import Source PDFs
+            </p>
+            {files.length>0 &&
+              <p className="mt-4 text-indigo-400 font-black">
+                {files.length} Files Queued
+              </p>}
+          </div>
+
+          <div className="space-y-3 h-[400px] overflow-y-auto custom-scrollbar">
+            {results.map(r=>(
+              <div key={r.id}
+                className="bg-slate-900 border border-slate-800 p-5 rounded-3xl flex justify-between items-center">
+                <div>
+                  <p className="text-xs font-black uppercase truncate max-w-[200px]">
+                    {r.name}
+                  </p>
+                  <p className="text-[9px] text-indigo-400 font-bold uppercase mt-1">
+                    {r.type} • {r.newSize} MB • -{r.saving}%
+                  </p>
+                </div>
+                <a href={r.url} download={r.name}
+                  className="bg-indigo-600 p-3 rounded-xl">
+                  <Icon name="download" size={14}/>
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+
+      {isProcessing && (
+        <div className="fixed inset-0 bg-slate-950/90 flex flex-col items-center justify-center z-[100]">
+          <div className="w-12 h-12 border-4 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
+          <p className="text-[10px] font-black uppercase tracking-widest">
+            {statusText}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
 
-/* ================= UNLOCK ================= */
-function UnlockTool({ files, setResults }) {
-  const run = async () => {
-    const out=[];
-    for (const f of files) {
-      const pdf = await PDFDocument.load(await f.arrayBuffer(),{ignoreEncryption:true});
-      const bytes = await pdf.save();
-      out.push({ name:`unlocked_${f.name}`, url:URL.createObjectURL(new Blob([bytes],{type:"application/pdf"})) });
-    }
-    setResults(out);
-    logAction("Unlocked PDFs");
-  };
-  return <button onClick={run} className="bg-indigo-600 px-6 py-3 rounded-xl font-black">UNLOCK</button>;
-}
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+ReactDOM.createRoot(document.getElementById("root")).render(<PDFSqueezePro />);
 </script>
 </body>
 </html>

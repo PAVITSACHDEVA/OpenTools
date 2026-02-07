@@ -45,32 +45,31 @@
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
 
-/* ---------- MAIN APP ---------- */
+/* ================= APP ================= */
 function App() {
   const [activeTab, setActiveTab] = useState("optimize");
   const [files, setFiles] = useState([]);
   const [results, setResults] = useState([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     if (window.lucide) window.lucide.createIcons();
   }, [activeTab, files, results]);
 
   const handleFiles = (e) => {
-    const selected = Array.from(e.target.files).filter(f => f.type === "application/pdf");
-    setFiles(selected);
+    setFiles([...e.target.files].filter(f => f.type === "application/pdf"));
   };
 
-  const processPDFs = async () => {
+  const runEngine = async () => {
     if (!files.length) return alert("Add PDF files first");
-    setIsProcessing(true);
+    setProcessing(true);
 
     const { PDFDocument, degrees, rgb, StandardFonts } = window.PDFLib;
-    let output = [];
+    let out = [];
 
     for (const file of files) {
-      const bytes = await file.arrayBuffer();
-      const pdf = await PDFDocument.load(bytes, activeTab === "unlock" ? { ignoreEncryption: true } : {});
+      const buf = await file.arrayBuffer();
+      const pdf = await PDFDocument.load(buf, activeTab === "unlock" ? { ignoreEncryption: true } : {});
 
       if (activeTab === "rotate") {
         pdf.getPages().forEach(p => p.setRotation(degrees(90)));
@@ -85,8 +84,8 @@ function App() {
             y: height / 2,
             size: 50,
             rotate: degrees(45),
-            opacity: 0.3,
-            color: rgb(0.6, 0.6, 0.6),
+            opacity: 0.25,
+            color: rgb(0.6,0.6,0.6),
             font
           });
         });
@@ -98,26 +97,42 @@ function App() {
         pdf.setProducer("PDF Squeeze Pro");
       }
 
-      const outBytes = await pdf.save({ useObjectStreams: true });
-      output.push({
+      const bytes = await pdf.save({ useObjectStreams: true });
+      out.push({
         name: file.name,
-        url: URL.createObjectURL(new Blob([outBytes], { type: "application/pdf" })),
-        before: (file.size / 1024 / 1024).toFixed(2),
-        after: (outBytes.length / 1024 / 1024).toFixed(2)
+        before: (file.size/1024/1024).toFixed(2),
+        after: (bytes.length/1024/1024).toFixed(2),
+        url: URL.createObjectURL(new Blob([bytes], { type:"application/pdf" }))
       });
     }
 
-    setResults(output);
-    setIsProcessing(false);
+    setResults(out);
+    setProcessing(false);
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-6">
-      {/* HEADER */}
-      <h1 className="text-3xl font-black mb-6">PDF SQUEEZE PRO</h1>
+    <div className="max-w-6xl mx-auto px-6 pb-20 text-white">
+
+      {/* TITLE */}
+      <div className="mt-10 mb-6">
+        <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+          PDF SQUEEZE PRO
+        </h1>
+        <p className="text-xs text-slate-400 tracking-widest uppercase mt-2">
+          Secure · Local · No Uploads
+        </p>
+      </div>
+
+      {/* WARNING */}
+      {activeTab === "optimize" && (
+        <div className="mb-6 bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-yellow-300 text-sm">
+          ⚠️ <b>CRUSH MODE</b> performs lightweight compression (metadata + structure).
+          Image-heavy PDFs may not shrink drastically.
+        </div>
+      )}
 
       {/* TABS */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-8 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
         {[
           ["optimize","zap","Crush"],
           ["merge","layers","Merge"],
@@ -128,8 +143,8 @@ function App() {
           <button
             key={id}
             onClick={() => setActiveTab(id)}
-            className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2
-              ${activeTab === id ? "bg-indigo-600" : "bg-slate-800"}`}
+            className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center gap-2
+              ${activeTab===id ? "bg-indigo-600" : "text-slate-400 hover:text-white"}`}
           >
             <i data-lucide={icon}></i>
             {label}
@@ -137,49 +152,48 @@ function App() {
         ))}
       </div>
 
-      {/* FILE INPUT */}
-      <input
-        type="file"
-        accept=".pdf"
-        multiple
-        onChange={handleFiles}
-        className="mb-4"
-      />
+      {/* FILE PICKER */}
+      <label className="block border-2 border-dashed border-slate-700 rounded-3xl p-12 text-center cursor-pointer hover:border-indigo-500 transition">
+        <i data-lucide="upload-cloud" className="mx-auto mb-4"></i>
+        <p className="font-bold">Click to add PDFs</p>
+        <p className="text-xs text-slate-500 mt-1">Processing stays on your device</p>
+        <input type="file" accept=".pdf" multiple hidden onChange={handleFiles} />
+      </label>
 
       {/* ACTION */}
       <button
-        onClick={processPDFs}
-        disabled={isProcessing}
-        className="bg-emerald-600 px-6 py-3 rounded-xl font-black mb-6"
+        onClick={runEngine}
+        disabled={processing}
+        className="mt-6 w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 py-4 rounded-2xl font-black text-lg transition"
       >
-        {isProcessing ? "PROCESSING..." : "RUN"}
+        {processing ? "PROCESSING…" : `RUN ${activeTab.toUpperCase()}`}
       </button>
 
       {/* RESULTS */}
-      <div className="space-y-3">
-        {results.map((r,i) => (
-          <div key={i} className="bg-slate-900 p-4 rounded-xl flex justify-between items-center">
-            <div>
-              <p className="font-bold">{r.name}</p>
-              <p className="text-xs text-slate-400">
-                {r.before} MB → {r.after} MB
-              </p>
+      {results.length > 0 && (
+        <div className="mt-10 space-y-4">
+          {results.map((r,i)=>(
+            <div key={i} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex justify-between items-center">
+              <div>
+                <p className="font-bold">{r.name}</p>
+                <p className="text-xs text-slate-400">
+                  {r.before} MB → {r.after} MB
+                </p>
+              </div>
+              <a href={r.url} download={r.name}
+                 className="bg-indigo-600 px-5 py-3 rounded-xl font-bold">
+                Download
+              </a>
             </div>
-            <a
-              href={r.url}
-              download={r.name}
-              className="bg-indigo-500 px-4 py-2 rounded-lg font-bold"
-            >
-              Download
-            </a>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
     </div>
   );
 }
 
-/* ---------- MOUNT ---------- */
+/* ================= MOUNT ================= */
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(<App />);
 </script>

@@ -1,327 +1,282 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PDF Squeeze Pro - Hybrid Engine</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PDF Squeeze Pro · Lumix-Core</title>
 
-<!-- React -->
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-<!-- Tailwind -->
 <script src="https://cdn.tailwindcss.com"></script>
-
-<!-- Lucide -->
 <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
-
-<!-- PDF Lib -->
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-body {
-  font-family: 'Inter', sans-serif;
-  background-color: #020617;
-  color: white;
-}
-.custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+body { background:#020617; font-family: Inter, system-ui, sans-serif; color:white; }
 </style>
 </head>
 
-<body class="custom-scrollbar">
+<body>
 <div id="root"></div>
 
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
 const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
 
-/* ================= SERVER ================= */
-const SERVER_COMPRESS_ENDPOINT =
-  "https://lumix-core-5tl0.onrender.com/api/compress";
-
-const fetchWithTimeout = async (url, options = {}, timeout = 60000) => {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  try {
-    const response = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(id);
-    return response;
-  } catch (e) {
-    clearTimeout(id);
-    throw new Error("Server Request Timed Out");
-  }
+/* ================= ADMIN ================= */
+const ROLE_MAP = {
+  "1-D": "developer",
+  "1-A": "admin",
+  "1-T": "tester"
 };
 
 /* ================= ICON ================= */
-const Icon = ({ name, size = 16, className = "" }) => {
-  useEffect(() => {
-    if (window.lucide) window.lucide.createIcons();
-  }, [name]);
-  return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
+const Icon = ({ name, size=16 }) => {
+  useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [name]);
+  return <i data-lucide={name} style={{ width:size, height:size }} />;
 };
 
 /* ================= APP ================= */
-function PDFSqueezePro() {
-  const [activeTab, setActiveTab] = useState("optimize");
+function App() {
+  const [role, setRole] = useState(localStorage.getItem("lumix_role"));
+  const [showLogin, setShowLogin] = useState(false);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const [activeTab, setActiveTab] = useState("rotate");
   const [files, setFiles] = useState([]);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [statusText, setStatusText] = useState("");
   const [results, setResults] = useState([]);
-  const [history, setHistory] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const [prefix, setPrefix] = useState("squeezed_");
-  const [mergeName, setMergeName] = useState("combined_result.pdf");
-  const [wmText, setWmText] = useState("DRAFT COPY");
-  const [wmOpacity, setWmOpacity] = useState(0.4);
-  const [rotateAngle, setRotateAngle] = useState(90);
-  const [metaTitle, setMetaTitle] = useState("");
-  const [metaAuthor, setMetaAuthor] = useState("");
+  const fileRef = useRef(null);
 
-  const fileInputRef = useRef(null);
-
-  /* ===== DRAG & DROP (FIXED) ===== */
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const dropped = Array.from(e.dataTransfer.files)
-      .filter(f => f.type === "application/pdf");
-
-    if (dropped.length === 0) return;
-    setFiles(prev => [...prev, ...dropped]);
-  };
-
-  /* ===== ENGINE ===== */
-  const processBatch = async () => {
-    if (files.length === 0) return;
-    setIsProcessing(true);
-    let processed = [];
-
-    try {
-      if (activeTab === "merge") {
-        setStatusText("Merging documents...");
-        const merged = await PDFDocument.create();
-
-        for (const file of files) {
-          const pdf = await PDFDocument.load(await file.arrayBuffer());
-          const pages = await merged.copyPages(pdf, pdf.getPageIndices());
-          pages.forEach(p => merged.addPage(p));
-        }
-
-        processed.push(makeResult(
-          mergeName,
-          await merged.save(),
-          "MERGE",
-          files.reduce((a,b)=>a+b.size,0)
-        ));
-
-      } else if (activeTab === "optimize") {
-        for (const file of files) {
-          setStatusText(`Server compressing: ${file.name}`);
-          const fd = new FormData();
-          fd.append("file", file);
-          const res = await fetchWithTimeout(
-            SERVER_COMPRESS_ENDPOINT,
-            { method: "POST", body: fd }
-          );
-          if (!res.ok) throw new Error("Server compression failed");
-          const buf = await res.arrayBuffer();
-          processed.push(makeResult(
-            prefix + file.name,
-            new Uint8Array(buf),
-            "OPTIMIZE",
-            file.size
-          ));
-        }
-
-      } else {
-        for (const file of files) {
-          setStatusText(`Processing ${file.name}`);
-          const pdf = await PDFDocument.load(
-            await file.arrayBuffer(),
-            { ignoreEncryption: activeTab === "unlock" }
-          );
-
-          if (activeTab === "rotate") {
-            pdf.getPages().forEach(p =>
-              p.setRotation(degrees(parseInt(rotateAngle)))
-            );
-          }
-
-          if (activeTab === "watermark") {
-            const font = await pdf.embedFont(StandardFonts.HelveticaBold);
-            pdf.getPages().forEach(p => {
-              const { width, height } = p.getSize();
-              p.drawText(wmText, {
-                x: width / 4,
-                y: height / 2,
-                size: 50,
-                font,
-                rotate: degrees(45),
-                opacity: wmOpacity,
-                color: rgb(0.5, 0.5, 0.5)
-              });
-            });
-          }
-
-          if (activeTab === "metadata") {
-            pdf.setTitle(metaTitle || "Untitled");
-            pdf.setAuthor(metaAuthor || "User");
-          }
-
-          processed.push(makeResult(
-            file.name,
-            await pdf.save(),
-            activeTab.toUpperCase(),
-            file.size
-          ));
-        }
-      }
-
-      setResults(prev => [...processed, ...prev]);
-      setHistory(prev => [...processed, ...prev]);
-
-    } catch (e) {
-      alert("Engine Error: " + e.message);
-    } finally {
-      setIsProcessing(false);
-      setFiles([]);
+  /* ===== LOGIN ===== */
+  const login = () => {
+    if (ROLE_MAP[password]) {
+      localStorage.setItem("lumix_role", ROLE_MAP[password]);
+      setRole(ROLE_MAP[password]);
+      setShowLogin(false);
+      setPassword("");
+      setError("");
+    } else {
+      setError("Invalid password");
     }
   };
 
-  const makeResult = (name, bytes, type, origSize) => {
-    const blob = new Blob([bytes], { type: "application/pdf" });
-    return {
-      id: Math.random().toString(36).slice(2),
-      name: name.endsWith(".pdf") ? name : name + ".pdf",
-      url: URL.createObjectURL(blob),
-      newSize: (bytes.length / 1024 / 1024).toFixed(2),
-      saving: (100 - (bytes.length / origSize * 100)).toFixed(1),
-      type,
-      timestamp: new Date().toLocaleTimeString()
-    };
+  const logout = () => {
+    localStorage.removeItem("lumix_role");
+    setRole(null);
   };
 
-  /* ===== UI ===== */
+  /* ===== DRAG & DROP ===== */
+  const onDrop = e => {
+    e.preventDefault();
+    const pdfs = [...e.dataTransfer.files].filter(f => f.type === "application/pdf");
+    if (pdfs.length) setFiles(prev => [...prev, ...pdfs]);
+  };
+
+  /* ===== ROTATE ===== */
+  const [angle, setAngle] = useState(0);
+  const rotatePDF = async () => {
+    setIsProcessing(true);
+    const out = [];
+    for (const f of files) {
+      const pdf = await PDFDocument.load(await f.arrayBuffer());
+      pdf.getPages().forEach(p => p.setRotation(degrees(angle)));
+      const bytes = await pdf.save();
+      out.push(makeResult(`rotated_${f.name}`, bytes));
+    }
+    setResults(out);
+    setIsProcessing(false);
+  };
+
+  /* ===== WATERMARK ===== */
+  const [wmText, setWmText] = useState("CONFIDENTIAL");
+  const [wmColor, setWmColor] = useState("#888888");
+  const [wmOpacity, setWmOpacity] = useState(0.4);
+  const [wmAngle, setWmAngle] = useState(45);
+  const [wmImage, setWmImage] = useState(null);
+
+  const watermarkPDF = async () => {
+    setIsProcessing(true);
+    const out = [];
+    for (const f of files) {
+      const pdf = await PDFDocument.load(await f.arrayBuffer());
+      const font = await pdf.embedFont(StandardFonts.HelveticaBold);
+
+      let img = null;
+      if (wmImage) {
+        const buf = await wmImage.arrayBuffer();
+        img = wmImage.type.includes("png")
+          ? await pdf.embedPng(buf)
+          : await pdf.embedJpg(buf);
+      }
+
+      const color = rgb(
+        parseInt(wmColor.slice(1,3),16)/255,
+        parseInt(wmColor.slice(3,5),16)/255,
+        parseInt(wmColor.slice(5,7),16)/255
+      );
+
+      pdf.getPages().forEach(p => {
+        const { width, height } = p.getSize();
+        if (img) {
+          p.drawImage(img, {
+            x: width/4,
+            y: height/4,
+            width: img.width/2,
+            height: img.height/2,
+            opacity: wmOpacity,
+            rotate: degrees(wmAngle)
+          });
+        }
+        p.drawText(wmText, {
+          x: width/4,
+          y: height/2,
+          size: 48,
+          font,
+          color,
+          opacity: wmOpacity,
+          rotate: degrees(wmAngle)
+        });
+      });
+
+      out.push(makeResult(`watermarked_${f.name}`, await pdf.save()));
+    }
+    setResults(out);
+    setIsProcessing(false);
+  };
+
+  /* ===== RESULT ===== */
+  const makeResult = (name, bytes) => ({
+    id: Math.random().toString(36),
+    name,
+    url: URL.createObjectURL(new Blob([bytes], { type:"application/pdf" }))
+  });
+
   return (
-    <div className="min-h-screen p-6 max-w-6xl mx-auto">
-      <header className="mb-12 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div>
-          <h1 className="text-4xl font-black italic uppercase">PDF SQUEEZE PRO</h1>
-          <p className="text-indigo-400 text-[10px] font-bold uppercase tracking-widest mt-2">
-            Hybrid Studio v3.0
-          </p>
+    <div className="max-w-6xl mx-auto p-6">
+
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-black">PDF SQUEEZE PRO</h1>
+        {!role && <button onClick={()=>setShowLogin(true)} className="text-xs">ADMIN</button>}
+        {role && <button onClick={logout} className="text-xs">LOGOUT</button>}
+      </div>
+
+      {/* TABS */}
+      <div className="flex gap-2 mb-6">
+        {["rotate","watermark","crush"].map(t=>(
+          <button key={t} onClick={()=>setActiveTab(t)}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase
+            ${activeTab===t?"bg-indigo-600":"bg-slate-800 text-slate-400"}`}>
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {/* DROPZONE */}
+      <div
+        onClick={()=>fileRef.current.click()}
+        onDrop={onDrop}
+        onDragOver={e=>e.preventDefault()}
+        className="border-2 border-dashed border-slate-700 p-12 rounded-3xl text-center cursor-pointer mb-6"
+      >
+        <input type="file" multiple accept="application/pdf" hidden ref={fileRef}
+          onChange={e=>setFiles([...files, ...e.target.files])} />
+        <Icon name="upload-cloud" size={32}/>
+        <p className="mt-3 text-xs uppercase">{files.length} Files Selected</p>
+      </div>
+
+      {/* ROTATE */}
+      {activeTab==="rotate" && (
+        <div className="space-y-4">
+          <input type="range" min="-360" max="360" value={angle}
+            onChange={e=>setAngle(+e.target.value)} />
+          <input type="number" value={angle}
+            onChange={e=>setAngle(+e.target.value)}
+            className="bg-slate-800 p-2 rounded-xl w-32"/>
+          <button onClick={rotatePDF}
+            className="bg-indigo-600 px-6 py-3 rounded-xl font-black">
+            APPLY ROTATE
+          </button>
         </div>
+      )}
 
-        <nav className="flex bg-slate-900 border border-slate-800 p-1 rounded-2xl overflow-x-auto">
-          {["optimize","merge","rotate","metadata","unlock","watermark"].map(t=>(
-            <button key={t}
-              onClick={()=>setActiveTab(t)}
-              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${
-                activeTab===t ? "bg-indigo-600 text-white" : "text-slate-500"
-              }`}>
-              {t}
-            </button>
-          ))}
-        </nav>
-      </header>
-
-      <main className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-4">
-          <section className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] space-y-5">
-            {activeTab==="optimize" &&
-              <input value={prefix} onChange={e=>setPrefix(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs font-bold"
-                placeholder="Prefix" />}
-            {activeTab==="watermark" &&
-              <input value={wmText} onChange={e=>setWmText(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs font-bold"
-                placeholder="Stamp text" />}
-            {activeTab==="rotate" &&
-              <select value={rotateAngle} onChange={e=>setRotateAngle(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs font-bold">
-                <option value="90">90°</option>
-                <option value="180">180°</option>
-                <option value="270">270°</option>
-              </select>}
-            <button
-              onClick={processBatch}
-              disabled={files.length===0 || isProcessing}
-              className="w-full bg-indigo-600 p-5 rounded-2xl font-black text-xs uppercase">
-              Run Engine
-            </button>
-          </section>
+      {/* WATERMARK */}
+      {activeTab==="watermark" && (
+        <div className="space-y-3">
+          <input value={wmText} onChange={e=>setWmText(e.target.value)}
+            className="bg-slate-800 p-3 rounded-xl w-full"/>
+          <input type="color" value={wmColor} onChange={e=>setWmColor(e.target.value)}/>
+          <input type="range" min="0" max="1" step="0.05"
+            value={wmOpacity} onChange={e=>setWmOpacity(+e.target.value)}/>
+          <input type="range" min="0" max="360"
+            value={wmAngle} onChange={e=>setWmAngle(+e.target.value)}/>
+          <input type="file" accept="image/png,image/jpeg"
+            onChange={e=>setWmImage(e.target.files[0])}/>
+          <button onClick={watermarkPDF}
+            className="bg-indigo-600 px-6 py-3 rounded-xl font-black">
+            APPLY WATERMARK
+          </button>
         </div>
+      )}
 
-        <div className="lg:col-span-8 space-y-6">
-          <div
-            onClick={()=>fileInputRef.current.click()}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-            className="border-2 border-dashed border-slate-800 p-20 rounded-[3rem] text-center hover:bg-indigo-500/5 cursor-pointer"
-          >
+      {/* CRUSH */}
+      {activeTab==="crush" && (
+        role==="admin" || role==="developer"
+          ? <div className="bg-slate-900 p-10 rounded-3xl">CRUSH · ADMIN MODE (WIP)</div>
+          : <div className="bg-slate-900 p-10 rounded-3xl">CRUSH · UNDER DEVELOPMENT</div>
+      )}
+
+      {/* RESULTS */}
+      <div className="mt-10 space-y-3">
+        {results.map(r=>(
+          <a key={r.id} href={r.url} download={r.name}
+            className="block bg-emerald-500 text-slate-950 p-4 rounded-xl font-black">
+            DOWNLOAD {r.name}
+          </a>
+        ))}
+      </div>
+
+      {/* LOGIN MODAL */}
+      {showLogin && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center">
+          <div className="bg-slate-900 p-8 rounded-2xl w-[320px]">
+            <h2 className="font-black mb-4">Admin Login</h2>
             <input
-              type="file"
-              multiple
-              accept="application/pdf"
-              hidden
-              ref={fileInputRef}
-              onChange={e=>setFiles(prev=>[...prev, ...Array.from(e.target.files)])}
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={e=>setPassword(e.target.value)}
+              className="w-full bg-slate-950 p-3 rounded-xl mb-3"
             />
-            <Icon name="upload-cloud" size={32} className="mx-auto mb-4 text-slate-700" />
-            <p className="text-slate-500 font-bold uppercase text-[10px]">
-              Import Source PDFs
-            </p>
-            {files.length>0 &&
-              <p className="mt-4 text-indigo-400 font-black">
-                {files.length} Files Queued
-              </p>}
-          </div>
-
-          <div className="space-y-3 h-[400px] overflow-y-auto custom-scrollbar">
-            {results.map(r=>(
-              <div key={r.id}
-                className="bg-slate-900 border border-slate-800 p-5 rounded-3xl flex justify-between items-center">
-                <div>
-                  <p className="text-xs font-black uppercase truncate max-w-[200px]">
-                    {r.name}
-                  </p>
-                  <p className="text-[9px] text-indigo-400 font-bold uppercase mt-1">
-                    {r.type} • {r.newSize} MB • -{r.saving}%
-                  </p>
-                </div>
-                <a href={r.url} download={r.name}
-                  className="bg-indigo-600 p-3 rounded-xl">
-                  <Icon name="download" size={14}/>
-                </a>
-              </div>
-            ))}
+            {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
+            <div className="flex gap-2">
+              <button onClick={login}
+                className="flex-1 bg-indigo-600 p-3 rounded-xl font-black text-xs">
+                LOGIN
+              </button>
+              <button onClick={()=>setShowLogin(false)}
+                className="flex-1 bg-slate-800 p-3 rounded-xl text-xs">
+                CANCEL
+              </button>
+            </div>
           </div>
         </div>
-      </main>
+      )}
 
       {isProcessing && (
-        <div className="fixed inset-0 bg-slate-950/90 flex flex-col items-center justify-center z-[100]">
-          <div className="w-12 h-12 border-4 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
-          <p className="text-[10px] font-black uppercase tracking-widest">
-            {statusText}
-          </p>
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-t-indigo-500 rounded-full animate-spin"></div>
         </div>
       )}
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<PDFSqueezePro />);
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
 </body>
 </html>

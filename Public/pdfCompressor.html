@@ -59,9 +59,7 @@ function App() {
       setShowLogin(false);
       setPassword("");
       setError("");
-    } else {
-      setError("Invalid password");
-    }
+    } else setError("Invalid password");
   };
 
   const logout = () => {
@@ -69,11 +67,17 @@ function App() {
     setRole(null);
   };
 
-  /* ===== DRAG & DROP ===== */
+  /* ===== DRAG & DROP (FIXED) ===== */
   const onDrop = e => {
     e.preventDefault();
+    e.stopPropagation();
     const pdfs = [...e.dataTransfer.files].filter(f => f.type === "application/pdf");
     if (pdfs.length) setFiles(prev => [...prev, ...pdfs]);
+  };
+
+  const block = e => {
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   /* ===== ROTATE ===== */
@@ -84,10 +88,9 @@ function App() {
     for (const f of files) {
       const pdf = await PDFDocument.load(await f.arrayBuffer());
       pdf.getPages().forEach(p => p.setRotation(degrees(angle)));
-      const bytes = await pdf.save();
-      out.push(makeResult(`rotated_${f.name}`, bytes));
+      out.push(makeResult(`rotated_${f.name}`, await pdf.save()));
     }
-    setResults(out);
+    setResults(prev => [...out, ...prev]);
     setIsProcessing(false);
   };
 
@@ -101,6 +104,7 @@ function App() {
   const watermarkPDF = async () => {
     setIsProcessing(true);
     const out = [];
+
     for (const f of files) {
       const pdf = await PDFDocument.load(await f.arrayBuffer());
       const font = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -144,7 +148,8 @@ function App() {
 
       out.push(makeResult(`watermarked_${f.name}`, await pdf.save()));
     }
-    setResults(out);
+
+    setResults(prev => [...out, ...prev]);
     setIsProcessing(false);
   };
 
@@ -161,8 +166,11 @@ function App() {
       {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-black">PDF SQUEEZE PRO</h1>
-        {!role && <button onClick={()=>setShowLogin(true)} className="text-xs">ADMIN</button>}
-        {role && <button onClick={logout} className="text-xs">LOGOUT</button>}
+        <div className="flex items-center gap-3">
+          {role && <span className="text-xs uppercase text-indigo-400">{role}</span>}
+          {!role && <button onClick={()=>setShowLogin(true)} className="text-xs">ADMIN</button>}
+          {role && <button onClick={logout} className="text-xs">LOGOUT</button>}
+        </div>
       </div>
 
       {/* TABS */}
@@ -180,11 +188,12 @@ function App() {
       <div
         onClick={()=>fileRef.current.click()}
         onDrop={onDrop}
-        onDragOver={e=>e.preventDefault()}
+        onDragOver={block}
+        onDragEnter={block}
         className="border-2 border-dashed border-slate-700 p-12 rounded-3xl text-center cursor-pointer mb-6"
       >
         <input type="file" multiple accept="application/pdf" hidden ref={fileRef}
-          onChange={e=>setFiles([...files, ...e.target.files])} />
+          onChange={e=>setFiles(prev=>[...prev, ...e.target.files])} />
         <Icon name="upload-cloud" size={32}/>
         <p className="mt-3 text-xs uppercase">{files.length} Files Selected</p>
       </div>
@@ -240,33 +249,6 @@ function App() {
         ))}
       </div>
 
-      {/* LOGIN MODAL */}
-      {showLogin && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center">
-          <div className="bg-slate-900 p-8 rounded-2xl w-[320px]">
-            <h2 className="font-black mb-4">Admin Login</h2>
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={e=>setPassword(e.target.value)}
-              className="w-full bg-slate-950 p-3 rounded-xl mb-3"
-            />
-            {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
-            <div className="flex gap-2">
-              <button onClick={login}
-                className="flex-1 bg-indigo-600 p-3 rounded-xl font-black text-xs">
-                LOGIN
-              </button>
-              <button onClick={()=>setShowLogin(false)}
-                className="flex-1 bg-slate-800 p-3 rounded-xl text-xs">
-                CANCEL
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {isProcessing && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center">
           <div className="w-12 h-12 border-4 border-t-indigo-500 rounded-full animate-spin"></div>
@@ -278,5 +260,6 @@ function App() {
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
+
 </body>
 </html>

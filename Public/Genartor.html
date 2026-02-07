@@ -1,97 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Image Generator | DocFix</title>
-<link rel="stylesheet" href="generatorstyle.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Generator & Filter Editor</title>
+   <link rel="stylesheet" href="Style.css">
+    <link rel="stylesheet" href="generatorstyle.css">
+     <link rel="icon" type="image/png" href="Assest/Logo.png" />
+    
 </head>
 <body>
-<header class="docfix-header">
-  <div class="nav-inner">
-    <div class="logo">DocFix</div>
-
-    <nav>
-      <a href="index.html">Home</a>
-      <a href="pdfCompressor.html">PDF</a>
-      <a href="Converter.html">Images</a>
-      <a href="Genartor.html" class="active">Generator</a>
-      <a href="ABOUT.html">About</a>
-    </nav>
-  </div>
-</header>
-<div class="page-wrap">
-  <div class="generator-card">
-
-<div class="generator-card">
-
-<h1 id="genTitle">📸 Image Generator & Editor</h1>
-<p id="genDesc">Generate random images, edit, and download</p>
-
-<button id="generateBtn" class="primary-btn">✨ Generate New Image</button>
-
-<div class="progress" style="display:none;">
-  <div class="progress-bar"></div>
-</div>
-
-<div id="editor" class="editor hidden">
-
-<div class="controls" id="filterControls">
-
-<h2>Presets</h2>
-<div class="presets">
-<button data-preset="vintage">Vintage</button>
-<button data-preset="cinematic">Cinematic</button>
-<button data-preset="bwpro">B&W Pro</button>
-</div>
-
-<h2>Filters</h2>
-
-<label>Black & White <span class="value" id="grayscaleVal">0</span></label>
-<input type="range" id="grayscale" min="0" max="100" value="0" data-unit="%">
-
-<label>Sepia <span class="value" id="sepiaVal">0</span></label>
-<input type="range" id="sepia" min="0" max="100" value="0" data-unit="%">
-
-<label>Contrast <span class="value" id="contrastVal">100</span></label>
-<input type="range" id="contrast" min="0" max="200" value="100" data-unit="%">
-
-<label>Brightness <span class="value" id="brightnessVal">100</span></label>
-<input type="range" id="brightness" min="0" max="200" value="100" data-unit="%">
-
-<label>Blur <span class="value" id="blurVal">0</span></label>
-<input type="range" id="blur" min="0" max="10" step="0.1" value="0" data-unit="px">
-
-<label>Invert <span class="value" id="invertVal">0</span></label>
-<input type="range" id="invert" min="0" max="100" value="0" data-unit="%">
-
-<button id="resetFilters">Reset Filters</button>
-
-<h2>Download</h2>
-
-<input type="text" id="filename" value="image">
-<select id="format">
-<option value="image/png">PNG</option>
-<option value="image/jpeg">JPEG</option>
-<option value="image/webp">WEBP</option>
-</select>
-
-<button id="downloadBtn">Download Image</button>
-
-</div>
-
-<div class="preview">
-<div id="image-placeholder">Generate an image to begin editing.</div>
-<canvas id="previewCanvas"></canvas>
-<div class="history" id="history"></div>
-</div>
-
-</div>
-
-</div>
+<div class="loading-screen" id="loading">
+  <div class="loading-title" id="loadingText"></div>
+  <div class="loader-bar">
+    <div class="loader-bar-fill" id="loaderFill"></div>
   </div>
 </div>
 
-<script src="generaterscript.js"></script>
+
+  <div id="content" class="show" style="display:none;">
+    <div class="app-container">
+      <div id="navbara" class="index ">
+                <a href="./index.html" class="gradient-text" data-sound-id="sound-home">Home</a>
+            <a href="./AI.html" class="gradient-text " data-sound-id="sound-lumixcore">
+  <span class="link-wrapper">
+    <span class="gradient-fill">Lumix Core AI</span>
+    <span class="trail-star">★</span>
+  </span>
+</a>
+
+
+                <a href="./pdfCompressor.html" class="gradient-text" data-sound-id="sound-pdf">PDF Compressor</a> 
+                <a href="./Genartor.html" class="gradient-text" data-sound-id="sound-generator">Random Image Generator</a>
+                <a href="./Converter.html" class="gradient-text" data-sound-id="sound-convert">Image Converter</a>
+                <a href="./ABOUT.HTML" class="gradient-text" data-sound-id="sound-about">About the AI</a>
+           
+       </div>
+        <header>
+            <h1>📸 Image Generator & Editor</h1>
+            <p>Generate a random image, then apply filters and download your creation.</p>
+        </header>
+
+        <div class="generator-section">
+            <button id="generateBtn">✨ Generate New Image</button>
+            <div class="progress" style="display:none;">
+                <div class="progress-bar"></div>
+            </div>
+        </div>
+
+        <main id="editor" class="main-content hidden">
+            <div class="controls-panel">
+                <h2>Controls</h2>
+                <div id="filterControls" class="filters-section">
+                    <h3>Filters</h3>
+                    <div class="filter">
+                        <label for="grayscale">Black & White</label>
+                        <input type="range" id="grayscale" min="0" max="100" value="0" step="1" data-unit="%">
+                    </div>
+                    <div class="filter">
+                        <label for="sepia">Sepia</label>
+                        <input type="range" id="sepia" min="0" max="100" value="0" step="1" data-unit="%">
+                    </div>
+                    <div class="filter">
+                        <label for="contrast">Contrast</label>
+                        <input type="range" id="contrast" min="0" max="200" value="100" step="1" data-unit="%">
+                    </div>
+                    <div class="filter">
+                        <label for="brightness">Brightness</label>
+                        <input type="range" id="brightness" min="0" max="200" value="100" step="1" data-unit="%">
+                    </div>
+                    <div class="filter">
+                        <label for="blur">Blur</label>
+                        <input type="range" id="blur" min="0" max="10" value="0" step="0.1" data-unit="px">
+                    </div>
+                    <div class="filter">
+                        <label for="invert">Invert</label>
+                        <input type="range" id="invert" min="0" max="100" value="0" step="1" data-unit="%">
+                    </div>
+                     <button id="resetFilters">Reset Filters</button>
+                </div>
+
+                <div id="downloadSection" class="download-section">
+                    <h3>Download Options</h3>
+                    <div class="input-group">
+                        <label for="filename">Filename:</label>
+                        <input type="text" id="filename" value="filtered-image">
+                    </div>
+                    <div class="input-group">
+                        <label for="format">Format:</label>
+                        <select id="format">
+                            <option value="image/jpeg">JPEG</option>
+                            <option value="image/png" selected>PNG</option>
+                            <option value="image/webp">WEBP</option>
+                        </select>
+                    </div>
+                    <div class="input-group" id="qualityGroup">
+                        <label for="quality">Quality:</label>
+                        <input type="range" id="quality" min="0.1" max="1.0" value="0.9" step="0.1">
+                    </div>
+                    <button id="downloadBtn">Download Image</button>
+                </div>
+            </div>
+
+            <div class="preview-panel">
+                <div id="image-placeholder">
+                    <p>Generate an image to begin editing.</p>
+                </div>
+                <canvas id="previewCanvas"></canvas>
+            </div>
+        </main>
+    </div>
+</div>
+    <script src="generaterscript.js"></script>
+    <script>document.addEventListener('DOMContentLoaded', () => {
+  const links = document.querySelectorAll('.gradient-text, .gradientai-text');
+
+  links.forEach(link => {
+    link.addEventListener('click', e => {
+      const soundId = link.getAttribute('data-sound-id');
+      const sound = document.getElementById(soundId);
+      if (!sound) return;
+
+      e.preventDefault();
+      sound.currentTime = 0;
+      sound.play();
+
+      sound.addEventListener('ended', function handleEnd() {
+        const targetHref = link.getAttribute('href');
+        window.location.href = targetHref;
+        sound.removeEventListener('ended', handleEnd);
+      });
+    });
+  });
+});
+</script>
+     <!-- <script src="script.js"></script> -->
+   <audio id="sound-home" src="./Assest/Home.mp3" preload="auto"></audio>
+<audio id="sound-lumixcore" src="./Assest/lumix core ai.mp3" preload="auto"></audio>
+<audio id="sound-convert" src="./Assest/Image Converter.mp3" preload="auto"></audio>
+<audio id="sound-about" src="./Assest/About the AI.mp3" preload="auto"></audio>
+<audio id="sound-generator" src="./Assest/Random Image Generator.mp3" preload="auto"></audio>
 </body>
 </html>

@@ -21,8 +21,36 @@ body { background:#020617; font-family: Inter, system-ui, sans-serif; color:whit
 <div id="root"></div>
 
 <script type="text/babel">
+  const HISTORY_KEY = "lumix_history";
+
+const loadHistory = () => {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+  catch { return []; }
+};
+
+const saveHistory = (items) => {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, 50)));
+};
+setResults(prev => {
+  const next = [...out, ...prev];
+  saveHistory(next);
+  return next;
+});
+const [queue, setQueue] = useState([]);
+const [currentTask, setCurrentTask] = useState(null);
+const [progressMap, setProgressMap] = useState({});
+
 const { useState, useEffect, useRef } = React;
 const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
+const enqueueFiles = (files, taskType) => {
+  const tasks = files.map(f => ({
+    id: crypto.randomUUID(),
+    file: f,
+    type: taskType,
+    progress: 0
+  }));
+  setQueue(q => [...q, ...tasks]);
+};
 
 /* ================= ADMIN ================= */
 const ROLE_MAP = {
@@ -43,6 +71,9 @@ function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [queue, setQueue] = useState([]);
+const [currentTask, setCurrentTask] = useState(null);
+const [progressMap, setProgressMap] = useState({});
 
   const [activeTab, setActiveTab] = useState("rotate");
   const [files, setFiles] = useState([]);
@@ -85,14 +116,45 @@ function App() {
   const rotatePDF = async () => {
     setIsProcessing(true);
     const out = [];
-    for (const f of files) {
-      const pdf = await PDFDocument.load(await f.arrayBuffer());
-      pdf.getPages().forEach(p => p.setRotation(degrees(angle)));
-      out.push(makeResult(`rotated_${f.name}`, await pdf.save()));
-    }
+  const enqueueRotate = () => {
+  const tasks = files.map(f => ({
+    id: crypto.randomUUID(),
+    type: "rotate",
+    file: f
+  }));
+  setQueue(q => [...q, ...tasks]);
+};
+
     setResults(prev => [...out, ...prev]);
     setIsProcessing(false);
   };
+const rotateSingle = async (task) => {
+  updateProgress(task.id, 10);
+
+  const pdf = await PDFDocument.load(await task.file.arrayBuffer());
+  updateProgress(task.id, 50);
+
+  pdf.getPages().forEach(p => p.setRotation(degrees(angle)));
+  updateProgress(task.id, 80);
+
+  const bytes = await pdf.save();
+  updateProgress(task.id, 100);
+
+  setResults(prev => [
+    makeResult(`rotated_${task.file.name}`, bytes),
+    ...prev
+  ]);
+};
+{Object.entries(progressMap).map(([id, value]) => (
+  <div key={id} className="bg-slate-800 p-2 rounded-xl">
+    <div className="h-1 bg-slate-700 rounded">
+      <div
+        className="h-1 bg-indigo-500 rounded"
+        style={{ width: `${value}%` }}
+      />
+    </div>
+  </div>
+))}
 
   /* ===== WATERMARK ===== */
   const [wmText, setWmText] = useState("CONFIDENTIAL");
@@ -152,6 +214,35 @@ function App() {
     setResults(prev => [...out, ...prev]);
     setIsProcessing(false);
   };
+useEffect(() => {
+  // If nothing is processing and something is queued → process next
+  if (!currentTask && queue.length > 0) {
+    const [next, ...rest] = queue;
+    setQueue(rest);
+    setCurrentTask(next);
+    processTask(next);
+  }
+}, [queue, currentTask]);
+const processTask = async (task) => {
+  setIsProcessing(true);
+
+  try {
+    if (task.type === "rotate") {
+      await rotateSingle(task);
+    }
+    if (task.type === "watermark") {
+      await watermarkSingle(task);
+    }
+    if (task.type === "unlock") {
+      await unlockSingle(task);
+    }
+  } catch (e) {
+    console.error("Task failed:", e);
+  } finally {
+    setCurrentTask(null); // 👈 allows next task to run
+    setIsProcessing(false);
+  }
+};
 
   /* ===== RESULT ===== */
   const makeResult = (name, bytes) => ({

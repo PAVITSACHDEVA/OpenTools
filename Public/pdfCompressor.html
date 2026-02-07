@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8" />
 <title>PDF Squeeze Pro</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
@@ -13,7 +13,7 @@
 <!-- Tailwind -->
 <script src="https://cdn.tailwindcss.com"></script>
 
-<!-- PDF LIB -->
+<!-- PDF-LIB -->
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 
 <style>
@@ -25,85 +25,53 @@ body { background:#020617; }
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useEffect, useRef } = React;
+const { useState, useEffect } = React;
 
-/* ================== AUTH ================== */
+/* ================= AUTH ================= */
 const ROLES = {
   "1-D": "developer",
   "1-A": "admin",
   "1-T": "tester"
 };
 
-/* ================== COMPRESSION PRESETS ================== */
+/* ================= PRESETS ================= */
 const COMPRESSION_PRESETS = {
-  light: {
-    label: "Light",
-    saveOpts: { useObjectStreams: false }
-  },
-  balanced: {
-    label: "Balanced",
-    saveOpts: { useObjectStreams: true }
-  },
-  aggressive: {
-    label: "Aggressive",
-    saveOpts: {
-      useObjectStreams: true,
-      addDefaultPage: false
-    }
-  }
+  light: { label:"Light", opts:{ useObjectStreams:false }},
+  balanced: { label:"Balanced", opts:{ useObjectStreams:true }},
+  aggressive: { label:"Aggressive", opts:{ useObjectStreams:true, addDefaultPage:false }}
 };
 
-/* ================== ENGINE ABSTRACTION ================== */
-/**
- * 🔥 THIS is where qpdf-wasm / ghostscript-wasm will go later
- */
-async function compressPDF(file, preset, onProgress) {
-  const { PDFDocument } = PDFLib;
-  onProgress(10);
+/* ================= UTIL ================= */
+const saveLog = (msg) => {
+  const logs = JSON.parse(localStorage.getItem("logs") || "[]");
+  logs.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
+  localStorage.setItem("logs", JSON.stringify(logs));
+};
 
-  const bytes = await file.arrayBuffer();
-  onProgress(30);
-
-  const pdf = await PDFDocument.load(bytes);
-  onProgress(60);
-
-  // STRUCTURAL OPTIMIZATION (pdf-lib now, qpdf later)
-  const out = await pdf.save(preset.saveOpts);
-  onProgress(100);
-
-  return new Blob([out], { type: "application/pdf" });
-}
-
-/* ================== APP ================== */
+/* ================= APP ================= */
 function App() {
   const [tab, setTab] = useState("crush");
   const [role, setRole] = useState(null);
   const [files, setFiles] = useState([]);
   const [progress, setProgress] = useState({});
-  const [logs, setLogs] = useState(
-    JSON.parse(localStorage.getItem("pdf_logs") || "[]")
-  );
-
-  useEffect(() => {
-    localStorage.setItem("pdf_logs", JSON.stringify(logs));
-  }, [logs]);
-
-  const log = msg =>
-    setLogs(l => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...l]);
+  const [results, setResults] = useState([]);
+  const [logs, setLogs] = useState(JSON.parse(localStorage.getItem("logs")||"[]"));
 
   const login = () => {
     const pass = prompt("Enter password");
     if (ROLES[pass]) {
       setRole(ROLES[pass]);
-      log(`Role unlocked: ${ROLES[pass]}`);
-    } else alert("Invalid password");
+      saveLog(`Logged in as ${ROLES[pass]}`);
+      setLogs(JSON.parse(localStorage.getItem("logs")));
+    } else alert("Wrong password");
   };
 
-  const onDrop = e => {
+  const onDrop = (e) => {
     e.preventDefault();
-    const pdfs = [...e.dataTransfer.files].filter(f => f.type === "application/pdf");
+    const pdfs = [...e.dataTransfer.files].filter(f=>f.type==="application/pdf");
     setFiles(pdfs);
-    log(`${pdfs.length} PDF(s) added`);
+    saveLog(`${pdfs.length} file(s) added`);
+    setLogs(JSON.parse(localStorage.getItem("logs")));
   };
 
   return (
@@ -120,7 +88,7 @@ function App() {
       </div>
 
       {/* TABS */}
-      <div className="flex gap-2 mb-8">
+      <div className="flex gap-2 mb-6">
         {["crush","merge","rotate","stamp","unlock"].map(t=>(
           <button key={t}
             onClick={()=>setTab(t)}
@@ -135,15 +103,28 @@ function App() {
       <div
         onDragOver={e=>e.preventDefault()}
         onDrop={onDrop}
-        className="border-2 border-dashed border-slate-700 rounded-3xl p-12 text-center mb-8">
+        className="border-2 border-dashed border-slate-700 rounded-3xl p-10 text-center mb-6">
         Drag & drop PDFs here
       </div>
 
       {/* CONTENT */}
       {tab==="crush"
-        ? <Crush role={role} files={files} progress={progress} setProgress={setProgress} log={log}/>
-        : <GenericFeature tab={tab} files={files} progress={progress} setProgress={setProgress} log={log}/>
+        ? <Crush role={role} files={files} setProgress={setProgress} setResults={setResults}/>
+        : <Engine tab={tab} files={files} setProgress={setProgress} setResults={setResults}/>
       }
+
+      {/* RESULTS */}
+      {results.length>0 && (
+        <div className="mt-10 space-y-3">
+          <h3 className="text-xs uppercase tracking-widest text-emerald-400">Results</h3>
+          {results.map(r=>(
+            <a key={r.name} href={r.url} download={r.name}
+              className="block bg-emerald-600 text-slate-950 px-6 py-3 rounded-xl font-black text-sm">
+              Download {r.name}
+            </a>
+          ))}
+        </div>
+      )}
 
       {/* LOGS */}
       <div className="mt-12 bg-slate-900 rounded-3xl p-6">
@@ -157,70 +138,62 @@ function App() {
   );
 }
 
-/* ================== CRUSH ================== */
-function Crush({ role, files, progress, setProgress, log }) {
+/* ================= CRUSH ================= */
+function Crush({ role, files, setProgress, setResults }) {
 
-  if (!role || role==="tester")
+  if (!role || role==="tester") {
     return (
-      <div className="bg-slate-900 rounded-3xl p-16 text-center">
-        <h2 className="text-2xl font-black mb-3">CRUSH · UNDER DEVELOPMENT</h2>
+      <div className="bg-slate-900 rounded-3xl p-14 text-center">
+        <h2 className="text-2xl font-black mb-2">CRUSH · UNDER DEVELOPMENT</h2>
         <p className="text-slate-400">Compression engine coming soon</p>
       </div>
     );
+  }
 
-  const run = async presetKey => {
+  const run = async (presetKey) => {
+    const out = [];
     for (const f of files) {
       setProgress(p=>({ ...p, [f.name]: 0 }));
-      const blob = await compressPDF(
-        f,
-        COMPRESSION_PRESETS[presetKey],
-        p => setProgress(pr=>({ ...pr, [f.name]: p }))
-      );
-      log(`CRUSH (${presetKey}) → ${f.name}`);
-      URL.createObjectURL(blob); // ready for download hook
+      const bytes = await f.arrayBuffer();
+      const pdf = await PDFLib.PDFDocument.load(bytes);
+      const newBytes = await pdf.save(COMPRESSION_PRESETS[presetKey].opts);
+      const blob = new Blob([newBytes], { type:"application/pdf" });
+      out.push({ name:`${presetKey}_${f.name}`, url:URL.createObjectURL(blob) });
+      saveLog(`CRUSH ${presetKey}: ${f.name}`);
     }
+    setResults(out);
   };
 
   return (
-    <div className="bg-slate-900 rounded-3xl p-12">
+    <div className="bg-slate-900 rounded-3xl p-10">
       <h2 className="text-xl font-black mb-6">CRUSH · ADMIN MODE</h2>
-
-      <div className="flex gap-4 mb-6">
+      <div className="flex gap-3">
         {Object.entries(COMPRESSION_PRESETS).map(([k,v])=>(
           <button key={k} onClick={()=>run(k)}
-            className="bg-indigo-600 px-4 py-2 rounded-xl text-xs font-black">
+            className="bg-indigo-600 px-5 py-3 rounded-xl text-xs font-black">
             {v.label}
           </button>
         ))}
       </div>
-
-      {Object.entries(progress).map(([f,p])=>(
-        <div key={f} className="mb-2 text-xs">
-          {f}
-          <div className="h-1 bg-slate-800 rounded">
-            <div className="h-full bg-indigo-500" style={{width:`${p}%`}}/>
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
 
-/* ================== OTHER FEATURES ================== */
-function GenericFeature({ tab, files, progress, setProgress, log }) {
+/* ================= OTHER ENGINES ================= */
+function Engine({ tab, files, setProgress, setResults }) {
   const run = async () => {
+    const out = [];
     for (const f of files) {
       setProgress(p=>({ ...p, [f.name]: 0 }));
-      for (let i=0;i<=100;i+=25) {
-        await new Promise(r=>setTimeout(r,120));
-        setProgress(p=>({ ...p, [f.name]: i }));
-      }
-      log(`${tab.toUpperCase()} → ${f.name}`);
+      await new Promise(r=>setTimeout(r,400));
+      out.push({ name:`${tab}_${f.name}`, url:URL.createObjectURL(f) });
+      saveLog(`${tab.toUpperCase()}: ${f.name}`);
     }
+    setResults(out);
   };
 
   return (
-    <div className="bg-slate-900 rounded-3xl p-12 text-center">
+    <div className="bg-slate-900 rounded-3xl p-10 text-center">
       <h2 className="text-xl font-black mb-4">{tab.toUpperCase()}</h2>
       <button onClick={run}
         className="bg-indigo-600 px-6 py-3 rounded-xl font-black">
